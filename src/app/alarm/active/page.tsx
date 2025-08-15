@@ -1,28 +1,53 @@
 "use client"
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useAlarmStore } from '@/hooks/useAlarmStore';
 import { AlarmClock, Play, History } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function ActiveAlarmPage() {
     const router = useRouter();
-    const { alarm, startAlarm, snoozeAlarm } = useAlarmStore();
+    const searchParams = useSearchParams();
+    const { getAlarmById, startAlarm, snoozeAlarm } = useAlarmStore();
+    const [alarmId, setAlarmId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const id = searchParams.get('alarmId');
+        if (id) {
+            setAlarmId(id);
+        } else {
+            // Handle case where alarmId is missing
+            router.push('/');
+        }
+    }, [searchParams, router]);
+
+    const alarm = alarmId ? getAlarmById(alarmId) : null;
 
     const handleStart = () => {
-        startAlarm();
+        if (!alarm) return;
+        startAlarm(alarm.id);
         if (alarm.questionIds.length > 0) {
             const firstQuestionId = alarm.questionIds[0];
-            router.push(`/question/${firstQuestionId}`);
+            router.push(`/question/${firstQuestionId}?alarmId=${alarm.id}`);
         } else {
             router.push('/');
         }
     };
 
     const handleSnooze = () => {
-        snoozeAlarm();
+        if (!alarm) return;
+        snoozeAlarm(alarm.id);
         router.push('/');
     };
+    
+    if (!alarm) {
+        return (
+             <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+                <p>Loading alarm...</p>
+            </div>
+        )
+    }
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { analyzeImage } from '@/ai/flows/analyze-image';
 import { useAlarmStore } from '@/hooks/useAlarmStore';
 import { useDsaProgress } from '@/hooks/useDsaProgress';
@@ -16,20 +16,27 @@ import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
-const TIME_LIMIT_SECONDS = 1 * 60; // Set to 1 minute for testing
+const TIME_LIMIT_SECONDS = 1 * 60;
 
 export function QuestionSolver({ question }: { question: Question }) {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { toast } = useToast();
-    const { alarm, nextQuestion, resetAlarm } = useAlarmStore();
+    const { getAlarmById, nextQuestion, removeAlarm } = useAlarmStore();
+
+    const [alarmId, setAlarmId] = useState<string | null>(null);
+    useEffect(() => {
+        setAlarmId(searchParams.get('alarmId'));
+    }, [searchParams]);
+
+    const alarm = alarmId ? getAlarmById(alarmId) : null;
     const { completeQuestion } = useDsaProgress();
 
     const [timeLeft, setTimeLeft] = useState(TIME_LIMIT_SECONDS);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const timerId = useRef<NodeJS.Timeout>();
-    const timerDeadlineKey = `dsa-timer-deadline-${question.id}`;
+    const timerDeadlineKey = `dsa-timer-deadline-${question.id}-${alarmId}`;
     const [isClient, setIsClient] = useState(false);
 
     // Webcam state
@@ -44,7 +51,6 @@ export function QuestionSolver({ question }: { question: Question }) {
     useEffect(() => {
         if (!isClient) return;
 
-        let deadline: number;
         let localTimerId: NodeJS.Timeout;
 
         const handleTimeout = () => {
@@ -52,21 +58,22 @@ export function QuestionSolver({ question }: { question: Question }) {
             const newDeadline = Date.now() + TIME_LIMIT_SECONDS * 1000;
             localStorage.setItem(timerDeadlineKey, newDeadline.toString());
             setTimeLeft(TIME_LIMIT_SECONDS);
-            // We don't return here, so the interval continues with the new deadline
         };
         
         const setupTimer = () => {
             const savedDeadline = localStorage.getItem(timerDeadlineKey);
             const now = Date.now();
             
+            let deadline: number;
             if (savedDeadline) {
                 deadline = parseInt(savedDeadline, 10);
                 const remaining = Math.round((deadline - now) / 1000);
                 if (remaining > 0) {
                     setTimeLeft(remaining);
                 } else {
-                    handleTimeout();
-                    deadline = parseInt(localStorage.getItem(timerDeadlineKey)!, 10);
+                    deadline = now + TIME_LIMIT_SECONDS * 1000;
+                    localStorage.setItem(timerDeadlineKey, deadline.toString());
+                    setTimeLeft(TIME_LIMIT_SECONDS);
                 }
             } else {
                 deadline = now + TIME_LIMIT_SECONDS * 1000;
@@ -75,26 +82,21 @@ export function QuestionSolver({ question }: { question: Question }) {
             }
     
             localTimerId = setInterval(() => {
-                const newRemaining = Math.round((parseInt(localStorage.getItem(timerDeadlineKey)!, 10) - Date.now()) / 1000);
+                const currentDeadline = parseInt(localStorage.getItem(timerDeadlineKey)!, 10);
+                const newRemaining = Math.round((currentDeadline - Date.now()) / 1000);
                 if (newRemaining <= 0) {
                     handleTimeout();
                 } else {
                     setTimeLeft(newRemaining);
                 }
             }, 1000);
-
-            timerId.current = localTimerId;
         }
 
         setupTimer();
 
-        return () => {
-            if (localTimerId) {
-                clearInterval(localTimerId);
-            }
-        };
+        return () => clearInterval(localTimerId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [question.id, isClient]);
+    }, [question.id, alarmId, isClient]);
 
     useEffect(() => {
         const getCameraPermission = async () => {
@@ -128,18 +130,19 @@ export function QuestionSolver({ question }: { question: Question }) {
       }, [isCameraOpen, toast]);
 
     const handleSuccess = () => {
-        if (timerId.current) clearInterval(timerId.current);
+        if (!alarm) return;
         if (typeof window !== 'undefined') {
             localStorage.removeItem(timerDeadlineKey);
         }
         completeQuestion(question.id);
         const nextIndex = alarm.currentQuestionIndex + 1;
         if (nextIndex < alarm.questionIds.length) {
-            nextQuestion();
-            router.push(`/question/${alarm.questionIds[nextIndex]}`);
+            nextQuestion(alarm.id);
+            const nextQuestionId = alarm.questionIds[nextIndex];
+            router.push(`/question/${nextQuestionId}?alarmId=${alarm.id}`);
         } else {
-            toast({ title: "All questions solved!", description: "You've completed your daily DSA workout!" });
-            resetAlarm();
+            toast({ title: "All questions solved!", description: "You've completed your daily DSA workout! Alarm removed." });
+            removeAlarm(alarm.id);
             router.push('/');
         }
     };
@@ -178,7 +181,7 @@ export function QuestionSolver({ question }: { question: Question }) {
                 const photoDataUri = e.target?.result as string;
                 analyzePhoto(photoDataUri);
             };
-            reader.readAsDataURL(file);
+            reader.readDataURL(file);
         }
     };
 
@@ -202,8 +205,8 @@ export function QuestionSolver({ question }: { question: Question }) {
     const seconds = timeLeft % 60;
     const progressPercentage = (timeLeft / TIME_LIMIT_SECONDS) * 100;
     
-    const currentQuestionNumber = alarm.currentQuestionIndex + 1;
-    const totalQuestions = alarm.questionIds.length;
+    const currentQuestionNumber = alarm ? alarm.currentQuestionIndex + 1 : 0;
+    const totalQuestions = alarm ? alarm.questionIds.length : 0;
 
     return (
         <div className="max-w-4xl mx-auto">

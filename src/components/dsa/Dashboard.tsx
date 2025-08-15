@@ -6,23 +6,30 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { SetAlarmSheet } from "@/components/dsa/SetAlarmSheet";
-import dsaQuestions, { type Category, type Question, getQuestionById } from "@/lib/dsa";
+import dsaQuestions, { type Category, type Question } from "@/lib/dsa";
 import { useDsaProgress } from "@/hooks/useDsaProgress";
 import { useNotificationStore } from "@/hooks/useNotificationStore";
-import { useAlarmStore } from "@/hooks/useAlarmStore";
+import { useAlarmStore, type Alarm } from "@/hooks/useAlarmStore";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AlarmPlus, Bell, ListChecks } from "lucide-react";
+import { AlarmPlus, Bell, Trash2 } from "lucide-react";
+import { format } from 'date-fns';
 
 export function Dashboard() {
   const [isAlarmSheetOpen, setIsAlarmSheetOpen] = useState(false);
+  const [editingAlarm, setEditingAlarm] = useState<Alarm | null>(null);
   const { progress, toggleQuestion } = useDsaProgress();
   const { notificationPermission, requestNotificationPermission } = useNotificationStore();
-  const alarm = useAlarmStore();
+  const { alarms, removeAlarm } = useAlarmStore();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  const handleOpenAlarmSheet = (alarm: Alarm | null = null) => {
+    setEditingAlarm(alarm);
+    setIsAlarmSheetOpen(true);
+  };
 
   const getCategoryProgress = (category: Category) => {
     if (!isClient) return 0;
@@ -31,8 +38,6 @@ export function Dashboard() {
     const completed = category.questions.filter(q => progress[q.id]).length;
     return (completed / total) * 100;
   };
-
-  const isAlarmSet = isClient && alarm.questionIds.length >= 3;
 
   return (
     <div className="container py-8">
@@ -45,36 +50,38 @@ export function Dashboard() {
               Enable Notifications
             </Button>
           )}
-          <Button onClick={() => setIsAlarmSheetOpen(true)}>
+          <Button onClick={() => handleOpenAlarmSheet()}>
             <AlarmPlus className="mr-2 h-4 w-4" />
-            {isAlarmSet ? 'Edit Daily Alarm' : 'Set Daily Alarm'}
+            Set New Alarm
           </Button>
         </div>
       </div>
 
-      {isAlarmSet && (
+      {isClient && alarms.length > 0 && (
         <Card className="mb-8">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-headline">
                     <AlarmPlus className="h-6 w-6"/>
-                    Daily Alarm Details
+                    Your Alarms
                 </CardTitle>
-                <CardDescription>
-                    Your alarm is set for {alarm.alarmTime} with the following questions:
-                </CardDescription>
             </CardHeader>
-            <CardContent>
-                <ul className="space-y-2">
-                    {alarm.questionIds.map(id => {
-                        const question = getQuestionById(id);
-                        return question ? (
-                            <li key={id} className="flex items-center gap-2">
-                                <ListChecks className="h-4 w-4 text-primary"/>
-                                <span>{question.title}</span>
-                            </li>
-                        ) : null
-                    })}
-                </ul>
+            <CardContent className="space-y-4">
+                {alarms.sort((a,b) => a.alarmDateTime - b.alarmDateTime).map(alarm => (
+                    <div key={alarm.id} className="flex justify-between items-center p-3 rounded-lg border bg-card">
+                        <div>
+                            <p className="font-semibold text-lg">{format(new Date(alarm.alarmDateTime), 'PPP p')}</p>
+                            <p className="text-sm text-muted-foreground">{alarm.questionIds.length} questions</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenAlarmSheet(alarm)}>
+                                Edit
+                            </Button>
+                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeAlarm(alarm.id)}>
+                                <Trash2 className="h-4 w-4"/>
+                            </Button>
+                        </div>
+                    </div>
+                ))}
             </CardContent>
         </Card>
       )}
@@ -113,7 +120,7 @@ export function Dashboard() {
           </AccordionItem>
         ))}
       </Accordion>
-      <SetAlarmSheet open={isAlarmSheetOpen} onOpenChange={setIsAlarmSheetOpen} />
+      <SetAlarmSheet open={isAlarmSheetOpen} onOpenChange={setIsAlarmSheetOpen} existingAlarm={editingAlarm} />
     </div>
   );
 }

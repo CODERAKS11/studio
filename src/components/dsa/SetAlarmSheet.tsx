@@ -92,6 +92,9 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
   };
 
   const filteredQuestions = useMemo(() => {
+    if (!searchTerm) {
+        return allQuestions.slice(0, 50); // Show a subset for performance
+    }
     return allQuestions.filter(question => 
         question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         question.description.toLowerCase().includes(searchTerm.toLowerCase())
@@ -104,14 +107,14 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col">
+      <SheetContent className="flex flex-col h-full">
         <SheetHeader>
           <SheetTitle className="font-headline">{existingAlarm ? 'Edit' : 'Set'} Your DSA Alarm</SheetTitle>
           <SheetDescription>
             Select a date, a time, and at least one question. Your alarm will ring at the specified time.
           </SheetDescription>
         </SheetHeader>
-        <div className="flex-1 flex flex-col gap-4 py-4">
+        <div className="flex-1 flex flex-col gap-4 py-4 min-h-0">
           <div className="grid grid-cols-2 gap-4">
             <div>
                 <Label htmlFor="alarm-date">Date</Label>
@@ -148,8 +151,8 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
                     className="pl-8"
                 />
             </div>
-            <ScrollArea className="mt-2 flex-1 border rounded-md p-4">
-              <div className="space-y-2">
+            <ScrollArea className="mt-2 flex-1 border rounded-md">
+              <div className="space-y-2 p-4">
                 {filteredQuestions.map((question: Question) => (
                   <div key={question.id} className="flex items-center space-x-3">
                     <Checkbox
@@ -162,6 +165,9 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
                     </Label>
                   </div>
                 ))}
+                 {filteredQuestions.length === 0 && (
+                    <p className="text-center text-muted-foreground text-sm">No questions found.</p>
+                )}
               </div>
             </ScrollArea>
           </div>

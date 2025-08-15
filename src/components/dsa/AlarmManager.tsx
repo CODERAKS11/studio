@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect } from 'react';
@@ -6,7 +7,7 @@ import { useAlarmStore } from '@/hooks/useAlarmStore';
 import { useNotificationStore } from '@/hooks/useNotificationStore';
 import { useDsaProgress } from '@/hooks/useDsaProgress';
 import { allQuestions } from '@/lib/dsa';
-import { isToday, startOfTomorrow } from 'date-fns';
+import { isToday, startOfTomorrow, formatDistanceToNow } from 'date-fns';
 import { playSound } from '@/lib/audio';
 import { showNotification } from '@/lib/notifications';
 
@@ -15,7 +16,7 @@ const LAST_AUTO_ALARM_CHECK_KEY = 'last-auto-alarm-check';
 const UNANSWERED_ALARM_TIMEOUT = 2 * 60 * 1000; // 2 minutes
 
 export function AlarmManager() {
-  const { alarms, activateAlarm, addOrUpdateAlarm, getAlarmById } = useAlarmStore();
+  const { alarms, activateAlarm, addOrUpdateAlarm, getAlarmById, snoozeAlarm } = useAlarmStore();
   const { notificationPermission } = useNotificationStore();
   const { progress } = useDsaProgress();
   const router = useRouter();
@@ -99,7 +100,7 @@ export function AlarmManager() {
             const lastCompletedQuestionIndex = allQuestions.findLastIndex(q => progress[q.id]);
             const nextQuestionIndex = lastCompletedQuestionIndex === -1 ? 0 : lastCompletedQuestionIndex + 1;
             
-            const nextQuestions = allQuestions.slice(nextQuestionIndex, nextQuestionIndex + 3);
+            const nextQuestions = allQuestions.slice(nextQuestionIndex, nextQuestionIndex + 1);
 
             if (nextQuestions.length > 0) {
                 const nextDayAlarmTime = new Date(tomorrow);
@@ -127,6 +128,15 @@ export function AlarmManager() {
     return () => clearInterval(dailyCheckInterval);
 
   }, [alarms, progress, addOrUpdateAlarm]);
+
+    const handleSnooze = (alarmId: string) => {
+        snoozeAlarm(alarmId);
+        showNotification('Alarm Snoozed', {
+            body: `Your alarm will ring again in 2 minutes.`,
+            data: { url: `/` },
+        });
+        router.push('/');
+    };
 
   return null;
 }

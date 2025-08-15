@@ -1,30 +1,30 @@
+
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...');
-  self.skipWaiting();
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...');
   event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('notificationclick', (event) => {
-  console.log('Service Worker: Notification clicked.');
   event.notification.close();
   const urlToOpen = event.notification.data.url || '/';
-
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      if (clientList.length > 0) {
-        let client = clientList[0];
-        for (let i = 0; i < clientList.length; i++) {
-          if (clientList[i].focused) {
-            client = clientList[i];
-          }
-        }
-        return client.focus().then(c => c.navigate(urlToOpen));
-      }
-      return clients.openWindow(urlToOpen);
-    })
+    self.clients.openWindow(urlToOpen)
   );
+});
+
+self.addEventListener('push', (event) => {
+  const data = event.data.json();
+  const title = data.title;
+  const options = {
+    body: data.body,
+    icon: '/icon.png',
+    badge: '/icon.png',
+    data: {
+      url: data.url
+    }
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
 });

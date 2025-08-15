@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -13,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { allQuestions, type Question } from "@/lib/dsa";
 import { Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { showNotification } from "@/lib/notifications";
 
 interface SetAlarmSheetProps {
   open: boolean;
@@ -94,10 +96,17 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
         sound: sound
     });
 
+    const toastMessage = `Your DSA alarm is set for ${format(alarmDateTime, 'PPP p')}.`;
     toast({
       title: `Alarm ${existingAlarm ? 'Updated' : 'Set'}!`,
-      description: `Your DSA alarm is set for ${format(alarmDateTime, 'PPP p')}.`,
+      description: toastMessage,
     });
+    
+    showNotification(`Alarm ${existingAlarm ? 'Updated' : 'Set'}!`, {
+      body: toastMessage,
+      data: { url: '/' },
+    });
+
     onOpenChange(false);
   };
 

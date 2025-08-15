@@ -179,6 +179,11 @@ export function QuestionSolver({ question }: { question: Question }) {
         completeQuestion(question.id);
         recordCompletion();
 
+        showNotification("Question Solved!", {
+            body: "Great job! Your progress and streak have been updated.",
+            data: { url: `/` },
+        });
+
         if (alarm) {
             const nextIndex = alarm.currentQuestionIndex + 1;
             if (nextIndex < alarm.questionIds.length) {
@@ -187,6 +192,10 @@ export function QuestionSolver({ question }: { question: Question }) {
                 router.push(`/question/${nextQuestionId}?alarmId=${alarm.id}`);
             } else {
                 toast({ title: "All questions solved!", description: "You've completed your daily DSA workout! Alarm removed." });
+                showNotification("Daily Goal Achieved!", {
+                    body: "You've completed all questions for this alarm. Well done!",
+                    data: { url: `/` },
+                });
                 removeAlarm(alarm.id);
                 router.push('/');
             }
@@ -212,6 +221,10 @@ export function QuestionSolver({ question }: { question: Question }) {
                 handleSuccess();
             } else {
                 toast({ variant: "destructive", title: "Verification Failed", description: result.reason });
+                showNotification("Verification Failed", {
+                    body: `Your submission for "${question.title}" was not approved. Reason: ${result.reason}`,
+                    data: { url: `/question/${question.id}?alarmId=${alarmId}` },
+                });
                 setAnalysisFailed(true);
             }
         } catch (error) {

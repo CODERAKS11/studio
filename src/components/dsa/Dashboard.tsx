@@ -17,7 +17,7 @@ export function Dashboard() {
   const [isAlarmSheetOpen, setIsAlarmSheetOpen] = useState(false);
   const { progress, toggleQuestion } = useDsaProgress();
   const { notificationPermission, requestNotificationPermission } = useNotificationStore();
-  const { alarm } = useAlarmStore();
+  const alarm = useAlarmStore();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {

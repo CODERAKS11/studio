@@ -14,7 +14,7 @@ export function AlarmManager() {
     if (typeof window === 'undefined') return;
 
     const checkAlarm = () => {
-      if (alarm.isActive || alarm.questionIds.length < 3) {
+      if (!alarm || alarm.isActive || alarm.questionIds.length < 3) {
         return;
       }
 
@@ -49,8 +49,9 @@ export function AlarmManager() {
       }
     };
 
-    const interval = setInterval(checkAlarm, 1000 * 30);
-    checkAlarm();
+    // Check more frequently to not miss the alarm time
+    const interval = setInterval(checkAlarm, 1000 * 10); 
+    checkAlarm(); // Also check on component mount
 
     return () => clearInterval(interval);
   }, [alarm, router, activateAlarm, notificationPermission]);

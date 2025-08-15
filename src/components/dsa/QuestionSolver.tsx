@@ -34,24 +34,21 @@ export function QuestionSolver({ question }: { question: Question }) {
         setIsClient(true);
     }, []);
 
-    const clearTimerState = () => {
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem(timerDeadlineKey);
-        }
-    };
-
-    const handleTimeout = () => {
-        toast({ variant: "destructive", title: "Time's up!", description: "Please try solving the question again." });
-        clearTimerState();
-        setTimeLeft(TIME_LIMIT_SECONDS);
-        const newDeadline = Date.now() + TIME_LIMIT_SECONDS * 1000;
-        localStorage.setItem(timerDeadlineKey, newDeadline.toString());
-    };
-
     useEffect(() => {
+        if (!isClient) return;
+
+        let deadline: number;
+
+        const handleTimeout = () => {
+            toast({ variant: "destructive", title: "Time's up!", description: "Please try solving the question again." });
+            const newDeadline = Date.now() + TIME_LIMIT_SECONDS * 1000;
+            localStorage.setItem(timerDeadlineKey, newDeadline.toString());
+            deadline = newDeadline; // Update deadline for the current interval cycle
+            setTimeLeft(TIME_LIMIT_SECONDS);
+        };
+
         const savedDeadline = localStorage.getItem(timerDeadlineKey);
         const now = Date.now();
-        let deadline: number;
 
         if (savedDeadline) {
             deadline = parseInt(savedDeadline, 10);
@@ -59,7 +56,6 @@ export function QuestionSolver({ question }: { question: Question }) {
             if (remaining > 0) {
                 setTimeLeft(remaining);
             } else {
-                setTimeLeft(0);
                 handleTimeout();
             }
         } else {
@@ -71,19 +67,26 @@ export function QuestionSolver({ question }: { question: Question }) {
         timerId.current = setInterval(() => {
             const newRemaining = Math.round((deadline - Date.now()) / 1000);
             if (newRemaining <= 0) {
-                clearInterval(timerId.current);
                 handleTimeout();
             } else {
                 setTimeLeft(newRemaining);
             }
         }, 1000);
 
-        return () => clearInterval(timerId.current);
+        return () => {
+            if (timerId.current) {
+                clearInterval(timerId.current);
+            }
+        };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [question.id, timerDeadlineKey]);
+    }, [question.id, timerDeadlineKey, isClient]);
+
 
     const handleSuccess = () => {
-        clearTimerState();
+        if (timerId.current) clearInterval(timerId.current);
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem(timerDeadlineKey);
+        }
         completeQuestion(question.id);
         const nextIndex = alarm.currentQuestionIndex + 1;
         if (nextIndex < alarm.questionIds.length) {

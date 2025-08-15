@@ -11,6 +11,7 @@ export interface Alarm {
     alarmDateTime: number; // Store as UTC timestamp
     questionIds: string[];
     isActive: boolean;
+    activatedAt: number | null; // Timestamp for when the alarm was first triggered
     currentQuestionIndex: number;
     snoozeUntil: number | null;
     sound: AlarmSound;
@@ -18,6 +19,7 @@ export interface Alarm {
 
 const initialAlarmState: Omit<Alarm, 'id' | 'alarmDateTime' | 'questionIds'> = {
     isActive: false,
+    activatedAt: null,
     currentQuestionIndex: 0,
     snoozeUntil: null,
     sound: 'classic',
@@ -51,6 +53,7 @@ export const useAlarmStore = create<AlarmStore>()(
                         questionIds: questions,
                         sound: sound,
                         isActive: false, // Reset state on update
+                        activatedAt: null,
                         snoozeUntil: null,
                     };
                     return { alarms: updatedAlarms };
@@ -72,7 +75,7 @@ export const useAlarmStore = create<AlarmStore>()(
             getAlarmById: (id) => get().alarms.find(a => a.id === id),
             activateAlarm: (id) => set(state => {
                 const alarms = state.alarms.map(alarm =>
-                    alarm.id === id ? { ...alarm, isActive: true, snoozeUntil: null } : alarm
+                    alarm.id === id ? { ...alarm, isActive: true, snoozeUntil: null, activatedAt: Date.now() } : alarm
                 );
                 return { alarms };
             }),
@@ -84,7 +87,7 @@ export const useAlarmStore = create<AlarmStore>()(
             }),
             snoozeAlarm: (id) => set(state => {
                 const alarms = state.alarms.map(alarm =>
-                    alarm.id === id ? { ...alarm, isActive: false, snoozeUntil: Date.now() + 2 * 60 * 1000 } : alarm
+                    alarm.id === id ? { ...alarm, isActive: false, activatedAt: null, snoozeUntil: Date.now() + 2 * 60 * 1000 } : alarm
                 );
                 return { alarms };
             }),

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,7 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
   const { addOrUpdateAlarm } = useAlarmStore();
   const { toast } = useToast();
   
+  // Initialize with default values
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [alarmDate, setAlarmDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [alarmTime, setAlarmTime] = useState('07:00');
@@ -31,6 +32,7 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
 
   useEffect(() => {
     setIsClient(true);
+    // Populate state from existingAlarm when it's provided and the sheet is open
     if (open && existingAlarm) {
       const alarmDateTime = new Date(existingAlarm.alarmDateTime);
       setSelectedQuestions(existingAlarm.questionIds);
@@ -41,6 +43,7 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
       setSelectedQuestions([]);
       setAlarmDate(format(new Date(), 'yyyy-MM-dd'));
       setAlarmTime('07:00');
+      setSearchTerm("");
     }
   }, [existingAlarm, open]);
 

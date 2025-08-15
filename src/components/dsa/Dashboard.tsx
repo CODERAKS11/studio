@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,6 +15,11 @@ export function Dashboard() {
   const [isAlarmSheetOpen, setIsAlarmSheetOpen] = useState(false);
   const { progress, toggleQuestion } = useDsaProgress();
   const { notificationPermission, requestNotificationPermission } = useNotificationStore();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const getCategoryProgress = (category: Category) => {
     const total = category.questions.length;
@@ -28,7 +33,7 @@ export function Dashboard() {
       <div className="flex justify-between items-center mb-6 gap-2">
         <h1 className="text-3xl font-headline font-bold">Your Progress</h1>
         <div className="flex gap-2">
-          {notificationPermission !== 'granted' && (
+          {isClient && notificationPermission !== 'granted' && (
             <Button onClick={requestNotificationPermission} variant="outline">
               <Bell className="mr-2 h-4 w-4" />
               Enable Notifications

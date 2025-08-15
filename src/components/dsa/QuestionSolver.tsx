@@ -42,7 +42,7 @@ export function QuestionSolver({ question }: { question: Question }) {
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
     const [analysisFailed, setAnalysisFailed] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const timerDeadlineKey = `dsa-timer-deadline-${question.id}-${alarmId}`;
+    const timerDeadlineKey = `dsa-timer-deadline-${question.id}-${alarmId || 'solo'}`;
     const [isClient, setIsClient] = useState(false);
 
     // Webcam state
@@ -144,20 +144,26 @@ export function QuestionSolver({ question }: { question: Question }) {
       }, [isCameraOpen, toast]);
 
     const handleSuccess = () => {
-        if (!alarm) return;
         if (typeof window !== 'undefined') {
             localStorage.removeItem(timerDeadlineKey);
         }
         completeQuestion(question.id);
         recordCompletion();
-        const nextIndex = alarm.currentQuestionIndex + 1;
-        if (nextIndex < alarm.questionIds.length) {
-            nextQuestion(alarm.id);
-            const nextQuestionId = alarm.questionIds[nextIndex];
-            router.push(`/question/${nextQuestionId}?alarmId=${alarm.id}`);
+
+        if (alarm) {
+            const nextIndex = alarm.currentQuestionIndex + 1;
+            if (nextIndex < alarm.questionIds.length) {
+                nextQuestion(alarm.id);
+                const nextQuestionId = alarm.questionIds[nextIndex];
+                router.push(`/question/${nextQuestionId}?alarmId=${alarm.id}`);
+            } else {
+                toast({ title: "All questions solved!", description: "You've completed your daily DSA workout! Alarm removed." });
+                removeAlarm(alarm.id);
+                router.push('/');
+            }
         } else {
-            toast({ title: "All questions solved!", description: "You've completed your daily DSA workout! Alarm removed." });
-            removeAlarm(alarm.id);
+            // No alarm, just a solo session
+            toast({ title: "Question Solved!", description: "Great job! Your progress and streak have been updated." });
             router.push('/');
         }
     };
@@ -174,7 +180,7 @@ export function QuestionSolver({ question }: { question: Question }) {
             });
 
             if (result.isLegitimate) {
-                toast({ title: "Verification Successful!", description: "Great job! Moving to the next question." });
+                toast({ title: "Verification Successful!", description: "Great job!" });
                 handleSuccess();
             } else {
                 toast({ variant: "destructive", title: "Verification Failed", description: result.reason });
@@ -221,8 +227,8 @@ export function QuestionSolver({ question }: { question: Question }) {
     const seconds = timeLeft % 60;
     const progressPercentage = (timeLeft / TIME_LIMIT_SECONDS) * 100;
     
-    const currentQuestionNumber = alarm ? alarm.currentQuestionIndex + 1 : 0;
-    const totalQuestions = alarm ? alarm.questionIds.length : 0;
+    const currentQuestionNumber = alarm ? alarm.currentQuestionIndex + 1 : 1;
+    const totalQuestions = alarm ? alarm.questionIds.length : 1;
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -234,12 +240,12 @@ export function QuestionSolver({ question }: { question: Question }) {
                             <CardDescription className="text-base font-code">{question.description}</CardDescription>
                         </div>
                         <div className="text-right ml-4 flex-shrink-0">
-                             {isClient ? (
+                             {isClient && alarm && (
                                 <p className="text-lg font-semibold text-primary">{`${currentQuestionNumber} / ${totalQuestions}`}</p>
-                            ) : (
-                                <p className="text-lg font-semibold text-primary">&nbsp;</p>
                             )}
-                            <p className="text-sm text-muted-foreground">Questions</p>
+                             {isClient && alarm && (
+                                <p className="text-sm text-muted-foreground">Questions</p>
+                            )}
                         </div>
                     </div>
                     <div className="flex gap-2 mt-2">

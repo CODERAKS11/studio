@@ -10,7 +10,7 @@ import { useNotificationStore } from "@/hooks/useNotificationStore";
 import { useAlarmStore, type Alarm } from "@/hooks/useAlarmStore";
 import { useStreakStore } from "@/hooks/useStreakStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlarmPlus, Bell, Trash2, Edit, Flame, CheckCircle2, ExternalLink, Rocket } from "lucide-react";
+import { AlarmPlus, Bell, Trash2, Edit, Flame, CheckCircle2, ExternalLink, Rocket, BrainCircuit } from "lucide-react";
 import { format } from 'date-fns';
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
@@ -133,6 +133,11 @@ export function Dashboard() {
                                             </Link>
                                           </Button>
                                         )}
+                                        <Button asChild size="sm">
+                                          <Link href={`/question/${question.id}`}>
+                                             <BrainCircuit className="mr-2 h-4 w-4" /> Solve
+                                          </Link>
+                                        </Button>
                                       </TableCell>
                                     </TableRow>
                                   ))}

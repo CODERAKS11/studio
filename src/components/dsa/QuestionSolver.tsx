@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
@@ -111,7 +112,7 @@ export function QuestionSolver({ question }: { question: Question }) {
         setupTimer();
 
         return () => clearInterval(localTimerId);
-    }, [question.id, alarmId, isClient, notificationPermission, question.title, alarm?.sound, timerDeadlineKey]);
+    }, [question.id, alarmId, isClient, notificationPermission, question.title, alarm?.sound, timerDeadlineKey, toast]);
 
     useEffect(() => {
         const getCameraPermission = async () => {

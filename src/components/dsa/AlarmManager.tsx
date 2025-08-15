@@ -3,9 +3,11 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAlarmStore } from '@/hooks/useAlarmStore';
+import { useNotificationStore } from '@/hooks/useNotificationStore';
 
 export function AlarmManager() {
   const { alarm, activateAlarm } = useAlarmStore();
+  const { notificationPermission } = useNotificationStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -36,6 +38,13 @@ export function AlarmManager() {
       if (now >= alarmDate) {
          localStorage.setItem('dsa-alarm-last-activation', todayStr);
          activateAlarm();
+         
+         if (notificationPermission === 'granted') {
+           new Notification('DSA Wake-Up!', {
+             body: 'Time to solve your daily DSA problems.',
+             icon: '/icon.png',
+           });
+         }
          router.push('/alarm/active');
       }
     };
@@ -44,7 +53,7 @@ export function AlarmManager() {
     checkAlarm();
 
     return () => clearInterval(interval);
-  }, [alarm, router, activateAlarm]);
+  }, [alarm, router, activateAlarm, notificationPermission]);
 
   return null;
 }

@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import { SetAlarmSheet } from "@/components/dsa/SetAlarmSheet";
 import dsaQuestions, { type Category, type Question } from "@/lib/dsa";
 import { useDsaProgress } from "@/hooks/useDsaProgress";
-import { AlarmPlus } from "lucide-react";
+import { useNotificationStore } from "@/hooks/useNotificationStore";
+import { AlarmPlus, Bell } from "lucide-react";
 
 export function Dashboard() {
   const [isAlarmSheetOpen, setIsAlarmSheetOpen] = useState(false);
   const { progress, toggleQuestion } = useDsaProgress();
+  const { notificationPermission, requestNotificationPermission } = useNotificationStore();
 
   const getCategoryProgress = (category: Category) => {
     const total = category.questions.length;
@@ -23,12 +25,20 @@ export function Dashboard() {
 
   return (
     <div className="container py-8">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 gap-2">
         <h1 className="text-3xl font-headline font-bold">Your Progress</h1>
-        <Button onClick={() => setIsAlarmSheetOpen(true)}>
-          <AlarmPlus className="mr-2 h-4 w-4" />
-          Set Daily Alarm
-        </Button>
+        <div className="flex gap-2">
+          {notificationPermission !== 'granted' && (
+            <Button onClick={requestNotificationPermission} variant="outline">
+              <Bell className="mr-2 h-4 w-4" />
+              Enable Notifications
+            </Button>
+          )}
+          <Button onClick={() => setIsAlarmSheetOpen(true)}>
+            <AlarmPlus className="mr-2 h-4 w-4" />
+            Set Daily Alarm
+          </Button>
+        </div>
       </div>
 
       <Accordion type="multiple" defaultValue={dsaQuestions.map(c => c.name)} className="w-full">

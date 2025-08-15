@@ -8,6 +8,7 @@ import { useDsaProgress } from '@/hooks/useDsaProgress';
 import { allQuestions } from '@/lib/dsa';
 import { isToday, startOfTomorrow } from 'date-fns';
 import { playSound } from '@/lib/audio';
+import { showNotification } from '@/lib/notifications';
 
 const activatedAlarms = new Set<string>();
 const LAST_AUTO_ALARM_CHECK_KEY = 'last-auto-alarm-check';
@@ -17,6 +18,14 @@ export function AlarmManager() {
   const { notificationPermission } = useNotificationStore();
   const { progress } = useDsaProgress();
   const router = useRouter();
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => console.log('Service Worker registered with scope:', registration.scope))
+        .catch(error => console.error('Service Worker registration failed:', error));
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -39,9 +48,9 @@ export function AlarmManager() {
            activateAlarm(alarm.id);
            
            if (notificationPermission === 'granted') {
-             new Notification('DSA Alarm!', {
+             showNotification('DSA Alarm!', {
                body: 'Time to solve your daily DSA problems.',
-               icon: '/icon.png',
+               data: { url: `/alarm/active?alarmId=${alarm.id}` },
              });
            }
            playSound(alarm.sound);
@@ -88,9 +97,9 @@ export function AlarmManager() {
                 });
 
                 if (notificationPermission === 'granted') {
-                    new Notification('DSA Alarm', {
+                    showNotification('DSA Alarm Set', {
                         body: `We've automatically set an alarm for you tomorrow at 7 AM. Keep the streak going!`,
-                        icon: '/icon.png',
+                        data: { url: `/` }
                     });
                 }
             }

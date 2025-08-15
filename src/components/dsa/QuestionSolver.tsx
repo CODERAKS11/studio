@@ -20,6 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import Link from 'next/link';
 import { useNotificationStore } from '@/hooks/useNotificationStore';
 import { playSound } from '@/lib/audio';
+import { showNotification } from '@/lib/notifications';
 
 const TIME_LIMIT_SECONDS = 15 * 60; // 15 minutes
 
@@ -65,9 +66,9 @@ export function QuestionSolver({ question }: { question: Question }) {
             toast({ variant: "destructive", title: "Time's up!", description: "Please try solving the question again." });
             playSound(alarm?.sound || 'classic');
             if (notificationPermission === 'granted') {
-                new Notification('DSA Alarm: Time\'s Up!', {
+                showNotification("DSA Alarm: Time's Up!", {
                     body: `Time to solve "${question.title}" ran out. Try again!`,
-                    icon: '/icon.png',
+                    data: { url: `/question/${question.id}?alarmId=${alarmId}` },
                 });
             }
             const newDeadline = Date.now() + TIME_LIMIT_SECONDS * 1000;

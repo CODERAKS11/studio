@@ -10,8 +10,9 @@ import dsaQuestions, { type Category, type Question, allQuestions } from "@/lib/
 import { useDsaProgress } from "@/hooks/useDsaProgress";
 import { useNotificationStore } from "@/hooks/useNotificationStore";
 import { useAlarmStore, type Alarm } from "@/hooks/useAlarmStore";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AlarmPlus, Bell, Trash2, Edit } from "lucide-react";
+import { useStreakStore } from "@/hooks/useStreakStore";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlarmPlus, Bell, Trash2, Edit, Flame } from "lucide-react";
 import { format } from 'date-fns';
 import { ChartContainer, ChartConfig, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Pie, PieChart, Cell } from "recharts";
@@ -33,6 +34,7 @@ export function Dashboard() {
   const { progress, toggleQuestion } = useDsaProgress();
   const { notificationPermission, requestNotificationPermission } = useNotificationStore();
   const { alarms, removeAlarm } = useAlarmStore();
+  const { streak } = useStreakStore();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -45,16 +47,16 @@ export function Dashboard() {
   };
 
   const getCategoryProgress = (category: Category) => {
-    if (!isClient) return 0;
-    const total = category.questions.length;
-    if (total === 0) return 0;
+    if (!isClient) return { completed: 0, total: category.questions.length, percentage: 0 };
     const completed = category.questions.filter(q => progress[q.id]).length;
-    return (completed / total) * 100;
+    const total = category.questions.length;
+    const percentage = total > 0 ? (completed / total) * 100 : 0;
+    return { completed, total, percentage };
   };
 
   const totalCompleted = isClient ? Object.values(progress).filter(p => p).length : 0;
   const totalQuestions = allQuestions.length;
-  const overallProgress = (totalCompleted / totalQuestions) * 100;
+  
   const chartData = [
       { name: 'completed', value: totalCompleted, fill: 'hsl(var(--chart-1))' },
       { name: 'remaining', value: totalQuestions - totalCompleted, fill: 'hsl(var(--chart-2))' }
@@ -80,38 +82,44 @@ export function Dashboard() {
                 </div>
             </div>
             <Accordion type="multiple" defaultValue={dsaQuestions.map(c => c.name)} className="w-full">
-                {dsaQuestions.map((category) => (
-                <AccordionItem value={category.name} key={category.name} className="border-border/50">
-                    <AccordionTrigger>
-                    <div className="flex flex-col items-start w-full mr-4">
-                        <span className="text-lg font-medium">{category.name}</span>
-                        <div className="w-full bg-muted rounded-full h-2 mt-2">
-                        <div
-                            className="bg-primary h-2 rounded-full transition-all duration-500"
-                            style={{ width: `${isClient ? getCategoryProgress(category) : 0}%` }}
-                        ></div>
+                {dsaQuestions.map((category) => {
+                  const { completed, total, percentage } = getCategoryProgress(category);
+                  return (
+                    <AccordionItem value={category.name} key={category.name} className="border-border/50">
+                        <AccordionTrigger>
+                        <div className="flex flex-col items-start w-full mr-4">
+                            <div className="flex justify-between w-full">
+                              <span className="text-lg font-medium">{category.name}</span>
+                              <span className="text-sm text-muted-foreground">{isClient ? `${completed} / ${total}` : '...'}</span>
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-2 mt-2">
+                            <div
+                                className="bg-primary h-2 rounded-full transition-all duration-500"
+                                style={{ width: `${isClient ? percentage : 0}%` }}
+                            ></div>
+                            </div>
                         </div>
-                    </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                    <div className="space-y-4">
-                        {category.questions.map((question: Question) => (
-                        <div key={question.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
-                            <Checkbox
-                            id={question.id}
-                            checked={isClient ? !!progress[question.id] : false}
-                            onCheckedChange={() => toggleQuestion(question.id)}
-                            disabled={!isClient}
-                            />
-                            <Label htmlFor={question.id} className="text-base font-normal cursor-pointer flex-1">
-                            {question.title}
-                            </Label>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                        <div className="space-y-4">
+                            {category.questions.map((question: Question) => (
+                            <div key={question.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                                <Checkbox
+                                id={question.id}
+                                checked={isClient ? !!progress[question.id] : false}
+                                onCheckedChange={() => toggleQuestion(question.id)}
+                                disabled={!isClient}
+                                />
+                                <Label htmlFor={question.id} className="text-base font-normal cursor-pointer flex-1">
+                                {question.title}
+                                </Label>
+                            </div>
+                            ))}
                         </div>
-                        ))}
-                    </div>
-                    </AccordionContent>
-                </AccordionItem>
-                ))}
+                        </AccordionContent>
+                    </AccordionItem>
+                  )
+                })}
             </Accordion>
         </div>
         <div className="space-y-8">
@@ -123,7 +131,7 @@ export function Dashboard() {
                     <ChartContainer config={chartConfig} className="mx-auto aspect-square h-48">
                         <PieChart>
                             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                            <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={60} strokeWidth={2}>
+                            <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={60} outerRadius={80} strokeWidth={2}>
                                 {chartData.map((entry) => (
                                      <Cell key={`cell-${entry.name}`} fill={entry.fill} />
                                 ))}
@@ -136,6 +144,20 @@ export function Dashboard() {
                     </div>
                 </CardContent>
             </Card>
+
+            {isClient && (
+                 <Card className="bg-card/50 border-border/50">
+                    <CardHeader>
+                        <CardTitle className="font-headline text-2xl flex items-center gap-2">
+                           <Flame className="text-primary" /> Daily Streak
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-center">
+                        <p className="text-6xl font-bold">{streak}</p>
+                        <p className="text-muted-foreground">{streak === 1 ? 'day' : 'days'}</p>
+                    </CardContent>
+                </Card>
+            )}
 
             {isClient && alarms.length > 0 && (
                 <Card className="bg-card/50 border-border/50">

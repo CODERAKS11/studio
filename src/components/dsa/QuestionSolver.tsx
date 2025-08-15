@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { analyzeImage } from '@/ai/flows/analyze-image';
 import { useAlarmStore } from '@/hooks/useAlarmStore';
 import { useDsaProgress } from '@/hooks/useDsaProgress';
+import { useStreakStore } from '@/hooks/useStreakStore';
 import type { Question } from '@/lib/dsa';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +24,7 @@ export function QuestionSolver({ question }: { question: Question }) {
     const searchParams = useSearchParams();
     const { toast } = useToast();
     const { getAlarmById, nextQuestion, removeAlarm } = useAlarmStore();
+    const { recordCompletion } = useStreakStore();
 
     const [alarmId, setAlarmId] = useState<string | null>(null);
     useEffect(() => {
@@ -35,6 +37,7 @@ export function QuestionSolver({ question }: { question: Question }) {
     const [timeLeft, setTimeLeft] = useState(TIME_LIMIT_SECONDS);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+    const [analysisFailed, setAnalysisFailed] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const timerDeadlineKey = `dsa-timer-deadline-${question.id}-${alarmId}`;
     const [isClient, setIsClient] = useState(false);
@@ -137,6 +140,7 @@ export function QuestionSolver({ question }: { question: Question }) {
             localStorage.removeItem(timerDeadlineKey);
         }
         completeQuestion(question.id);
+        recordCompletion();
         const nextIndex = alarm.currentQuestionIndex + 1;
         if (nextIndex < alarm.questionIds.length) {
             nextQuestion(alarm.id);
@@ -152,6 +156,7 @@ export function QuestionSolver({ question }: { question: Question }) {
     const analyzePhoto = async (photoDataUri: string) => {
         setUploadedImage(photoDataUri);
         setIsAnalyzing(true);
+        setAnalysisFailed(false);
         setIsCameraOpen(false);
         try {
             const result = await analyzeImage({
@@ -164,10 +169,12 @@ export function QuestionSolver({ question }: { question: Question }) {
                 handleSuccess();
             } else {
                 toast({ variant: "destructive", title: "Verification Failed", description: result.reason });
+                setAnalysisFailed(true);
             }
         } catch (error) {
             console.error(error);
             toast({ variant: "destructive", title: "Analysis Error", description: "Could not analyze the image. Please try again." });
+            setAnalysisFailed(true);
         } finally {
             setIsAnalyzing(false);
         }
@@ -249,7 +256,7 @@ export function QuestionSolver({ question }: { question: Question }) {
                         </div>
                     )}
 
-                    {!isAnalyzing && (
+                    {(!isAnalyzing || analysisFailed) && (
                         <div className="flex flex-col sm:flex-row justify-center gap-4">
                             <Button size="lg" onClick={triggerFileSelect} disabled={isAnalyzing} className="flex-1 max-w-sm py-8 text-xl">
                                 <Camera className="mr-2 h-6 w-6" />

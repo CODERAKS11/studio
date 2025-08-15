@@ -10,7 +10,7 @@ import { useNotificationStore } from "@/hooks/useNotificationStore";
 import { useAlarmStore, type Alarm } from "@/hooks/useAlarmStore";
 import { useStreakStore } from "@/hooks/useStreakStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlarmPlus, Bell, Trash2, Edit, Flame, CheckCircle2, ExternalLink } from "lucide-react";
+import { AlarmPlus, Bell, Trash2, Edit, Flame, CheckCircle2, ExternalLink, Rocket } from "lucide-react";
 import { format } from 'date-fns';
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
@@ -79,8 +79,8 @@ export function Dashboard() {
         <div className="lg:col-span-2">
             <Accordion type="multiple" className="w-full space-y-4">
                 {dsaQuestions.map((category) => {
-                  const completedInCategory = isClient ? category.questions.filter(q => progress[q.id]).length : 0;
-                  const totalInCategory = category.questions.length;
+                  const completedInCategory = isClient ? category.lectures.flatMap(l => l.questions).filter(q => progress[q.id]).length : 0;
+                  const totalInCategory = category.lectures.flatMap(l => l.questions).length;
 
                   return (
                     <AccordionItem value={category.name} key={category.name} className="border border-border/50 rounded-lg bg-card/50">
@@ -91,42 +91,55 @@ export function Dashboard() {
                           </div>
                         </AccordionTrigger>
                         <AccordionContent className="p-0">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="w-[80px]">Status</TableHead>
-                                <TableHead>Problem</TableHead>
-                                <TableHead className="text-right">Article</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {category.questions.map((question: Question) => (
-                                <TableRow key={question.id}>
-                                  <TableCell className="text-center">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => toggleQuestion(question.id)}
-                                      disabled={!isClient}
-                                    >
-                                      <CheckCircle2 className={cn("h-6 w-6", isClient && progress[question.id] ? "text-primary" : "text-muted-foreground/50")} />
-                                    </Button>
-                                  </TableCell>
-                                  <TableCell>
-                                    <p className="font-medium">{question.title}</p>
-                                    <p className="text-xs text-muted-foreground">{question.description}</p>
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <Button asChild variant="outline" size="sm" disabled={question.link === '#'}>
-                                      <Link href={question.link} target="_blank" rel="noopener noreferrer">
-                                        <ExternalLink className="mr-2 h-4 w-4" /> Read
-                                      </Link>
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
+                          {category.lectures.map(lecture => (
+                            <div key={lecture.name}>
+                              <h3 className="font-semibold bg-muted/50 p-3 border-b border-t border-border/50">{lecture.name}</h3>
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-[80px]">Status</TableHead>
+                                    <TableHead>Problem</TableHead>
+                                    <TableHead className="text-right">Links</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {lecture.questions.map((question: Question) => (
+                                    <TableRow key={question.id}>
+                                      <TableCell className="text-center">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => toggleQuestion(question.id)}
+                                          disabled={!isClient}
+                                        >
+                                          <CheckCircle2 className={cn("h-6 w-6", isClient && progress[question.id] ? "text-primary" : "text-muted-foreground/50")} />
+                                        </Button>
+                                      </TableCell>
+                                      <TableCell>
+                                        <p className="font-medium">{question.title}</p>
+                                      </TableCell>
+                                      <TableCell className="text-right space-x-2">
+                                        {question.link && (
+                                          <Button asChild variant="outline" size="sm" disabled={question.link === '#'}>
+                                            <Link href={question.link} target="_blank" rel="noopener noreferrer">
+                                              <ExternalLink className="mr-2 h-4 w-4" /> Read
+                                            </Link>
+                                          </Button>
+                                        )}
+                                        {question.practiceLink && (
+                                           <Button asChild variant="secondary" size="sm">
+                                            <Link href={question.practiceLink} target="_blank" rel="noopener noreferrer">
+                                              <Rocket className="mr-2 h-4 w-4" /> Practice
+                                            </Link>
+                                          </Button>
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          ))}
                         </AccordionContent>
                     </AccordionItem>
                   )

@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useAlarmStore } from '@/hooks/useAlarmStore';
-import { AlarmClock, Play, History, ExternalLink } from 'lucide-react';
+import { AlarmClock, Play, History, ExternalLink, Rocket } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getQuestionById } from '@/lib/dsa';
@@ -40,7 +40,7 @@ export default function ActiveAlarmPage() {
         router.push('/');
     };
     
-    if (!alarm) {
+    if (!alarm || !firstQuestion) {
         return (
              <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
                 <p>Loading alarm...</p>
@@ -54,7 +54,7 @@ export default function ActiveAlarmPage() {
                 <AlarmClock className="mx-auto h-24 w-24 text-primary animate-pulse" />
                 <h1 className="mt-8 text-5xl font-headline font-bold text-foreground">DSA Alarm!</h1>
                 <p className="mt-4 text-xl text-muted-foreground">
-                    Time to solve your daily DSA problems.
+                    Time to solve: <span className="font-bold text-foreground">{firstQuestion.title}</span>
                 </p>
             </div>
 
@@ -63,11 +63,19 @@ export default function ActiveAlarmPage() {
                     <Play className="mr-2 h-6 w-6" />
                     Start
                 </Button>
-                {firstQuestion && firstQuestion.link !== '#' && (
+                {firstQuestion.link && (
                      <Button asChild size="lg" variant="outline" className="flex-1 text-lg py-8">
                         <Link href={firstQuestion.link} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="mr-2 h-6 w-6" />
-                            Question Link
+                            Article
+                        </Link>
+                    </Button>
+                )}
+                 {firstQuestion.practiceLink && (
+                     <Button asChild size="lg" variant="secondary" className="flex-1 text-lg py-8">
+                        <Link href={firstQuestion.practiceLink} target="_blank" rel="noopener noreferrer">
+                            <Rocket className="mr-2 h-6 w-6" />
+                            Practice
                         </Link>
                     </Button>
                 )}

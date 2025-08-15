@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Camera, Video, Zap, ExternalLink } from 'lucide-react';
+import { Loader2, Camera, Video, Zap, ExternalLink, Rocket } from 'lucide-react';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -234,13 +234,22 @@ export function QuestionSolver({ question }: { question: Question }) {
                             <p className="text-sm text-muted-foreground">Questions</p>
                         </div>
                     </div>
-                     {question.link !== '#' && (
-                        <Button asChild variant="link" className="px-0">
-                            <Link href={question.link} target="_blank" rel="noopener noreferrer">
-                                View Question on takeuforward <ExternalLink className="ml-2" />
-                            </Link>
-                        </Button>
-                    )}
+                    <div className="flex gap-2 mt-2">
+                        {question.link && (
+                            <Button asChild variant="link" className="px-0">
+                                <Link href={question.link} target="_blank" rel="noopener noreferrer">
+                                    View Question on takeuforward <ExternalLink className="ml-2" />
+                                </Link>
+                            </Button>
+                        )}
+                         {question.practiceLink && (
+                            <Button asChild variant="link" className="px-0">
+                                <Link href={question.practiceLink} target="_blank" rel="noopener noreferrer">
+                                    Practice on LeetCode <Rocket className="ml-2" />
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div>

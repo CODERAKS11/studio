@@ -66,7 +66,7 @@ export default function ActiveAlarmPage() {
                 </Button>
                 <Button size="lg" variant="secondary" className="flex-1 text-lg py-8" onClick={handleSnooze}>
                     <History className="mr-2 h-6 w-6" />
-                    5 Minutes Later
+                    2 Minutes Later
                 </Button>
             </div>
         </div>

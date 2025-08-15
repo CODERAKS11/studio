@@ -78,7 +78,7 @@ export const useAlarmStore = create<AlarmStore>()(
             }),
             snoozeAlarm: (id) => set(state => {
                 const alarms = state.alarms.map(alarm =>
-                    alarm.id === id ? { ...alarm, isActive: false, snoozeUntil: Date.now() + 5 * 60 * 1000 } : alarm
+                    alarm.id === id ? { ...alarm, isActive: false, snoozeUntil: Date.now() + 2 * 60 * 1000 } : alarm
                 );
                 return { alarms };
             }),

@@ -16,7 +16,7 @@ import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
-const TIME_LIMIT_SECONDS = 1 * 60;
+const TIME_LIMIT_SECONDS = 20 * 60;
 
 export function QuestionSolver({ question }: { question: Question }) {
     const router = useRouter();
@@ -85,7 +85,9 @@ export function QuestionSolver({ question }: { question: Question }) {
                 const currentDeadline = parseInt(localStorage.getItem(timerDeadlineKey)!, 10);
                 const newRemaining = Math.round((currentDeadline - Date.now()) / 1000);
                 if (newRemaining <= 0) {
+                    clearInterval(localTimerId); // Stop old interval
                     handleTimeout();
+                    setupTimer(); // Restart the timer logic
                 } else {
                     setTimeLeft(newRemaining);
                 }
@@ -181,7 +183,7 @@ export function QuestionSolver({ question }: { question: Question }) {
                 const photoDataUri = e.target?.result as string;
                 analyzePhoto(photoDataUri);
             };
-            reader.readDataURL(file);
+            reader.readAsDataURL(file);
         }
     };
 

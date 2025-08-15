@@ -17,6 +17,7 @@ import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import Link from 'next/link';
+import { useNotificationStore } from '@/hooks/useNotificationStore';
 
 const TIME_LIMIT_SECONDS = 1 * 60;
 
@@ -26,6 +27,7 @@ export function QuestionSolver({ question }: { question: Question }) {
     const { toast } = useToast();
     const { getAlarmById, nextQuestion, removeAlarm } = useAlarmStore();
     const { recordCompletion } = useStreakStore();
+    const { notificationPermission } = useNotificationStore();
 
     const [alarmId, setAlarmId] = useState<string | null>(null);
     useEffect(() => {
@@ -59,6 +61,12 @@ export function QuestionSolver({ question }: { question: Question }) {
 
         const handleTimeout = () => {
             toast({ variant: "destructive", title: "Time's up!", description: "Please try solving the question again." });
+            if (notificationPermission === 'granted') {
+                new Notification('DSA Alarm: Time\'s Up!', {
+                    body: `Time to solve "${question.title}" ran out. Try again!`,
+                    icon: '/icon.png',
+                });
+            }
             const newDeadline = Date.now() + TIME_LIMIT_SECONDS * 1000;
             localStorage.setItem(timerDeadlineKey, newDeadline.toString());
             setTimeLeft(TIME_LIMIT_SECONDS);
@@ -102,7 +110,7 @@ export function QuestionSolver({ question }: { question: Question }) {
 
         return () => clearInterval(localTimerId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [question.id, alarmId, isClient]);
+    }, [question.id, alarmId, isClient, notificationPermission, question.title]);
 
     useEffect(() => {
         const getCameraPermission = async () => {

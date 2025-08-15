@@ -164,12 +164,10 @@ export function QuestionSolver({ question }: { question: Question }) {
                 handleSuccess();
             } else {
                 toast({ variant: "destructive", title: "Verification Failed", description: result.reason });
-                setUploadedImage(null);
             }
         } catch (error) {
             console.error(error);
             toast({ variant: "destructive", title: "Analysis Error", description: "Could not analyze the image. Please try again." });
-            setUploadedImage(null);
         } finally {
             setIsAnalyzing(false);
         }
@@ -238,7 +236,7 @@ export function QuestionSolver({ question }: { question: Question }) {
                         <Progress value={progressPercentage} />
                     </div>
 
-                    {uploadedImage && !isAnalyzing && (
+                    {uploadedImage && (
                         <div className="flex justify-center">
                            <Image src={uploadedImage} alt="Uploaded solution" width={400} height={300} className="rounded-md object-contain border" data-ai-hint="code screenshot" />
                         </div>

@@ -8,11 +8,13 @@ import { useDsaProgress } from '@/hooks/useDsaProgress';
 import type { Question } from '@/lib/dsa';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Camera } from 'lucide-react';
+import { Loader2, Camera, Video, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { Label } from '../ui/label';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 const TIME_LIMIT_SECONDS = 1 * 60; // Set to 1 minute for testing
 
@@ -30,6 +32,11 @@ export function QuestionSolver({ question }: { question: Question }) {
     const timerDeadlineKey = `dsa-timer-deadline-${question.id}`;
     const [isClient, setIsClient] = useState(false);
 
+    // Webcam state
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
+    const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+
     useEffect(() => {
         setIsClient(true);
     }, []);
@@ -38,49 +45,87 @@ export function QuestionSolver({ question }: { question: Question }) {
         if (!isClient) return;
 
         let deadline: number;
+        let localTimerId: NodeJS.Timeout;
 
         const handleTimeout = () => {
             toast({ variant: "destructive", title: "Time's up!", description: "Please try solving the question again." });
             const newDeadline = Date.now() + TIME_LIMIT_SECONDS * 1000;
             localStorage.setItem(timerDeadlineKey, newDeadline.toString());
-            deadline = newDeadline; // Update deadline for the current interval cycle
             setTimeLeft(TIME_LIMIT_SECONDS);
+            // We don't return here, so the interval continues with the new deadline
         };
-
-        const savedDeadline = localStorage.getItem(timerDeadlineKey);
-        const now = Date.now();
-
-        if (savedDeadline) {
-            deadline = parseInt(savedDeadline, 10);
-            const remaining = Math.round((deadline - now) / 1000);
-            if (remaining > 0) {
-                setTimeLeft(remaining);
+        
+        const setupTimer = () => {
+            const savedDeadline = localStorage.getItem(timerDeadlineKey);
+            const now = Date.now();
+            
+            if (savedDeadline) {
+                deadline = parseInt(savedDeadline, 10);
+                const remaining = Math.round((deadline - now) / 1000);
+                if (remaining > 0) {
+                    setTimeLeft(remaining);
+                } else {
+                    handleTimeout();
+                    deadline = parseInt(localStorage.getItem(timerDeadlineKey)!, 10);
+                }
             } else {
-                handleTimeout();
+                deadline = now + TIME_LIMIT_SECONDS * 1000;
+                localStorage.setItem(timerDeadlineKey, deadline.toString());
+                setTimeLeft(TIME_LIMIT_SECONDS);
             }
-        } else {
-            deadline = now + TIME_LIMIT_SECONDS * 1000;
-            localStorage.setItem(timerDeadlineKey, deadline.toString());
-            setTimeLeft(TIME_LIMIT_SECONDS);
+    
+            localTimerId = setInterval(() => {
+                const newRemaining = Math.round((parseInt(localStorage.getItem(timerDeadlineKey)!, 10) - Date.now()) / 1000);
+                if (newRemaining <= 0) {
+                    handleTimeout();
+                } else {
+                    setTimeLeft(newRemaining);
+                }
+            }, 1000);
+
+            timerId.current = localTimerId;
         }
 
-        timerId.current = setInterval(() => {
-            const newRemaining = Math.round((deadline - Date.now()) / 1000);
-            if (newRemaining <= 0) {
-                handleTimeout();
-            } else {
-                setTimeLeft(newRemaining);
-            }
-        }, 1000);
+        setupTimer();
 
         return () => {
-            if (timerId.current) {
-                clearInterval(timerId.current);
+            if (localTimerId) {
+                clearInterval(localTimerId);
             }
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [question.id, timerDeadlineKey, isClient]);
+    }, [question.id, isClient]);
 
+    useEffect(() => {
+        const getCameraPermission = async () => {
+          if (!isCameraOpen) return;
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            setHasCameraPermission(true);
+    
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+            }
+          } catch (error) {
+            console.error('Error accessing camera:', error);
+            setHasCameraPermission(false);
+            toast({
+              variant: 'destructive',
+              title: 'Camera Access Denied',
+              description: 'Please enable camera permissions in your browser settings.',
+            });
+          }
+        };
+    
+        getCameraPermission();
+    
+        return () => {
+          if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+          }
+        }
+      }, [isCameraOpen, toast]);
 
     const handleSuccess = () => {
         if (timerId.current) clearInterval(timerId.current);
@@ -99,38 +144,57 @@ export function QuestionSolver({ question }: { question: Question }) {
         }
     };
 
+    const analyzePhoto = async (photoDataUri: string) => {
+        setUploadedImage(photoDataUri);
+        setIsAnalyzing(true);
+        setIsCameraOpen(false);
+        try {
+            const result = await analyzeImage({
+                photoDataUri,
+                questionDescription: `Title: ${question.title}. Description: ${question.description}`,
+            });
+
+            if (result.isLegitimate) {
+                toast({ title: "Verification Successful!", description: "Great job! Moving to the next question." });
+                handleSuccess();
+            } else {
+                toast({ variant: "destructive", title: "Verification Failed", description: result.reason });
+                setUploadedImage(null);
+            }
+        } catch (error) {
+            console.error(error);
+            toast({ variant: "destructive", title: "Analysis Error", description: "Could not analyze the image. Please try again." });
+            setUploadedImage(null);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    }
+
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = async (e) => {
                 const photoDataUri = e.target?.result as string;
-                setUploadedImage(photoDataUri);
-                setIsAnalyzing(true);
-                try {
-                    const result = await analyzeImage({
-                        photoDataUri,
-                        questionDescription: `Title: ${question.title}. Description: ${question.description}`,
-                    });
-
-                    if (result.isLegitimate) {
-                        toast({ title: "Verification Successful!", description: "Great job! Moving to the next question." });
-                        handleSuccess();
-                    } else {
-                        toast({ variant: "destructive", title: "Verification Failed", description: result.reason });
-                        setUploadedImage(null);
-                    }
-                } catch (error) {
-                    console.error(error);
-                    toast({ variant: "destructive", title: "Analysis Error", description: "Could not analyze the image. Please try again." });
-                    setUploadedImage(null);
-                } finally {
-                    setIsAnalyzing(false);
-                }
+                analyzePhoto(photoDataUri);
             };
             reader.readAsDataURL(file);
         }
     };
+
+    const handleCapture = () => {
+        if (videoRef.current) {
+            const canvas = document.createElement('canvas');
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            const context = canvas.getContext('2d');
+            if (context) {
+                context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+                const dataUri = canvas.toDataURL('image/jpeg');
+                analyzePhoto(dataUri);
+            }
+        }
+    }
 
     const triggerFileSelect = () => fileInputRef.current?.click();
     
@@ -151,10 +215,10 @@ export function QuestionSolver({ question }: { question: Question }) {
                             <CardDescription className="text-base font-code">{question.description}</CardDescription>
                         </div>
                         <div className="text-right ml-4 flex-shrink-0">
-                            {isClient ? (
+                             {isClient ? (
                                 <p className="text-lg font-semibold text-primary">{`${currentQuestionNumber} / ${totalQuestions}`}</p>
                             ) : (
-                                <p className="text-lg font-semibold text-primary"> &nbsp; </p>
+                                <p className="text-lg font-semibold text-primary">&nbsp;</p>
                             )}
                             <p className="text-sm text-muted-foreground">Questions</p>
                         </div>
@@ -169,28 +233,59 @@ export function QuestionSolver({ question }: { question: Question }) {
                         <Progress value={progressPercentage} />
                     </div>
 
-                    {uploadedImage && (
+                    {uploadedImage && !isAnalyzing && (
                         <div className="flex justify-center">
                            <Image src={uploadedImage} alt="Uploaded solution" width={400} height={300} className="rounded-md object-contain border" data-ai-hint="code screenshot" />
                         </div>
                     )}
+                    
+                    {isAnalyzing && (
+                        <div className="flex flex-col items-center justify-center gap-4 p-8">
+                            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                            <p className="text-lg text-muted-foreground">Analyzing your solution...</p>
+                        </div>
+                    )}
 
-                    <div className="flex justify-center">
-                        <Button size="lg" onClick={triggerFileSelect} disabled={isAnalyzing} className="w-full max-w-sm py-8 text-xl">
-                            {isAnalyzing ? (
-                                <>
-                                    <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                                    Analyzing...
-                                </>
-                            ) : (
-                                <>
-                                    <Camera className="mr-2 h-6 w-6" />
-                                    Upload & Verify
-                                </>
-                            )}
-                        </Button>
-                        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} className="hidden" />
-                    </div>
+                    {!isAnalyzing && (
+                        <div className="flex flex-col sm:flex-row justify-center gap-4">
+                            <Button size="lg" onClick={triggerFileSelect} disabled={isAnalyzing} className="flex-1 max-w-sm py-8 text-xl">
+                                <Camera className="mr-2 h-6 w-6" />
+                                Upload Photo
+                            </Button>
+
+                            <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
+                                <DialogTrigger asChild>
+                                    <Button size="lg" variant="secondary" className="flex-1 max-w-sm py-8 text-xl">
+                                        <Video className="mr-2 h-6 w-6" />
+                                        Use Webcam
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-3xl">
+                                    <DialogHeader>
+                                        <DialogTitle>Verify with Webcam</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                        <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted playsInline />
+                                        {hasCameraPermission === false && (
+                                            <Alert variant="destructive">
+                                                <AlertTitle>Camera Access Required</AlertTitle>
+                                                <AlertDescription>
+                                                    Please allow camera access in your browser to use this feature.
+                                                </AlertDescription>
+                                            </Alert>
+                                        )}
+                                    </div>
+                                    <DialogFooter>
+                                        <Button onClick={handleCapture} disabled={hasCameraPermission !== true}>
+                                            <Zap className="mr-2 h-4 w-4" />
+                                            Capture & Verify
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                            <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} className="hidden" />
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

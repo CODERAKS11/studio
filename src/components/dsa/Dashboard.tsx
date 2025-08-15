@@ -81,7 +81,7 @@ export function Dashboard() {
                 </Button>
                 </div>
             </div>
-            <Accordion type="multiple" defaultValue={dsaQuestions.map(c => c.name)} className="w-full">
+            <Accordion type="multiple" className="w-full">
                 {dsaQuestions.map((category) => {
                   const { completed, total, percentage } = getCategoryProgress(category);
                   return (
@@ -111,7 +111,7 @@ export function Dashboard() {
                                 disabled={!isClient}
                                 />
                                 <Label htmlFor={question.id} className="text-base font-normal cursor-pointer flex-1">
-                                {question.title}
+                                {question.title} <span className="text-xs text-muted-foreground">({question.description})</span>
                                 </Label>
                             </div>
                             ))}

@@ -93,7 +93,8 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
 
   const filteredQuestions = useMemo(() => {
     return allQuestions.filter(question => 
-        question.title.toLowerCase().includes(searchTerm.toLowerCase())
+        question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        question.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm]);
   

@@ -3,8 +3,10 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useAlarmStore } from '@/hooks/useAlarmStore';
-import { AlarmClock, Play, History } from 'lucide-react';
+import { AlarmClock, Play, History, ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { getQuestionById } from '@/lib/dsa';
 
 export default function ActiveAlarmPage() {
     const router = useRouter();
@@ -23,16 +25,13 @@ export default function ActiveAlarmPage() {
     }, [searchParams, router]);
 
     const alarm = alarmId ? getAlarmById(alarmId) : null;
+    const firstQuestionId = alarm?.questionIds[0];
+    const firstQuestion = firstQuestionId ? getQuestionById(firstQuestionId) : null;
 
     const handleStart = () => {
-        if (!alarm) return;
+        if (!alarm || !firstQuestionId) return;
         startAlarm(alarm.id);
-        if (alarm.questionIds.length > 0) {
-            const firstQuestionId = alarm.questionIds[0];
-            router.push(`/question/${firstQuestionId}?alarmId=${alarm.id}`);
-        } else {
-            router.push('/');
-        }
+        router.push(`/question/${firstQuestionId}?alarmId=${alarm.id}`);
     };
 
     const handleSnooze = () => {
@@ -64,7 +63,17 @@ export default function ActiveAlarmPage() {
                     <Play className="mr-2 h-6 w-6" />
                     Start
                 </Button>
-                <Button size="lg" variant="secondary" className="flex-1 text-lg py-8" onClick={handleSnooze}>
+                {firstQuestion && firstQuestion.link !== '#' && (
+                     <Button asChild size="lg" variant="outline" className="flex-1 text-lg py-8">
+                        <Link href={firstQuestion.link} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="mr-2 h-6 w-6" />
+                            Question Link
+                        </Link>
+                    </Button>
+                )}
+            </div>
+             <div className="mt-4 w-full max-w-sm">
+                 <Button size="lg" variant="secondary" className="w-full text-lg py-8" onClick={handleSnooze}>
                     <History className="mr-2 h-6 w-6" />
                     2 Minutes Later
                 </Button>

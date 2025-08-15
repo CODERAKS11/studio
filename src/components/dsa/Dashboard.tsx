@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { cn } from "@/lib/utils";
 
 export function Dashboard() {
   const [isAlarmSheetOpen, setIsAlarmSheetOpen] = useState(false);

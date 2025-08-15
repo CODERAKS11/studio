@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAlarmStore } from "@/hooks/useAlarmStore";
 import { useToast } from "@/hooks/use-toast";
 import { allQuestions, type Question } from "@/lib/dsa";
+import { Search } from "lucide-react";
 
 interface SetAlarmSheetProps {
   open: boolean;
@@ -20,6 +21,7 @@ export function SetAlarmSheet({ open, onOpenChange }: SetAlarmSheetProps) {
   const { alarm, setDsaAlarm } = useAlarmStore();
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>(alarm.questionIds);
   const [alarmTime, setAlarmTime] = useState(alarm.alarmTime);
+  const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
   const handleQuestionToggle = (questionId: string) => {
@@ -47,6 +49,12 @@ export function SetAlarmSheet({ open, onOpenChange }: SetAlarmSheetProps) {
     onOpenChange(false);
   };
 
+  const filteredQuestions = useMemo(() => {
+    return allQuestions.filter(question => 
+        question.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm]);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex flex-col">
@@ -69,9 +77,19 @@ export function SetAlarmSheet({ open, onOpenChange }: SetAlarmSheetProps) {
           </div>
           <div className="flex-1 flex flex-col min-h-0">
             <Label>Questions</Label>
-            <ScrollArea className="mt-1 flex-1 border rounded-md p-4">
+            <div className="relative mt-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Search for a question..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8"
+                />
+            </div>
+            <ScrollArea className="mt-2 flex-1 border rounded-md p-4">
               <div className="space-y-2">
-                {allQuestions.map((question: Question) => (
+                {filteredQuestions.map((question: Question) => (
                   <div key={question.id} className="flex items-center space-x-3">
                     <Checkbox
                       id={`alarm-${question.id}`}

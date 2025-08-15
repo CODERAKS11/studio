@@ -6,15 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { SetAlarmSheet } from "@/components/dsa/SetAlarmSheet";
-import dsaQuestions, { type Category, type Question } from "@/lib/dsa";
+import dsaQuestions, { type Category, type Question, getQuestionById } from "@/lib/dsa";
 import { useDsaProgress } from "@/hooks/useDsaProgress";
 import { useNotificationStore } from "@/hooks/useNotificationStore";
-import { AlarmPlus, Bell } from "lucide-react";
+import { useAlarmStore } from "@/hooks/useAlarmStore";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { AlarmPlus, Bell, ListChecks } from "lucide-react";
 
 export function Dashboard() {
   const [isAlarmSheetOpen, setIsAlarmSheetOpen] = useState(false);
   const { progress, toggleQuestion } = useDsaProgress();
   const { notificationPermission, requestNotificationPermission } = useNotificationStore();
+  const { alarm } = useAlarmStore();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -29,9 +32,11 @@ export function Dashboard() {
     return (completed / total) * 100;
   };
 
+  const isAlarmSet = isClient && alarm.questionIds.length >= 3;
+
   return (
     <div className="container py-8">
-      <div className="flex justify-between items-center mb-6 gap-2">
+      <div className="flex justify-between items-center mb-6 gap-2 flex-wrap">
         <h1 className="text-3xl font-headline font-bold">Your Progress</h1>
         <div className="flex gap-2">
           {isClient && notificationPermission !== 'granted' && (
@@ -42,10 +47,37 @@ export function Dashboard() {
           )}
           <Button onClick={() => setIsAlarmSheetOpen(true)}>
             <AlarmPlus className="mr-2 h-4 w-4" />
-            Set Daily Alarm
+            {isAlarmSet ? 'Edit Daily Alarm' : 'Set Daily Alarm'}
           </Button>
         </div>
       </div>
+
+      {isAlarmSet && (
+        <Card className="mb-8">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-headline">
+                    <AlarmPlus className="h-6 w-6"/>
+                    Daily Alarm Details
+                </CardTitle>
+                <CardDescription>
+                    Your alarm is set for {alarm.alarmTime} with the following questions:
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ul className="space-y-2">
+                    {alarm.questionIds.map(id => {
+                        const question = getQuestionById(id);
+                        return question ? (
+                            <li key={id} className="flex items-center gap-2">
+                                <ListChecks className="h-4 w-4 text-primary"/>
+                                <span>{question.title}</span>
+                            </li>
+                        ) : null
+                    })}
+                </ul>
+            </CardContent>
+        </Card>
+      )}
 
       <Accordion type="multiple" defaultValue={dsaQuestions.map(c => c.name)} className="w-full">
         {dsaQuestions.map((category) => (
@@ -56,7 +88,7 @@ export function Dashboard() {
                 <div className="w-full bg-muted rounded-full h-2 mt-2">
                   <div
                     className="bg-accent h-2 rounded-full"
-                    style={{ width: `${getCategoryProgress(category)}%` }}
+                    style={{ width: `${isClient ? getCategoryProgress(category) : 0}%` }}
                   ></div>
                 </div>
               </div>

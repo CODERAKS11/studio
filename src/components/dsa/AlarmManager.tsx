@@ -34,7 +34,7 @@ export function AlarmManager() {
            activateAlarm(alarm.id);
            
            if (notificationPermission === 'granted') {
-             new Notification('DSA Wake-Up!', {
+             new Notification('DSA Alarm!', {
                body: 'Time to solve your daily DSA problems.',
                icon: '/icon.png',
              });

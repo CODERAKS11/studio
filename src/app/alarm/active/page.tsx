@@ -53,7 +53,7 @@ export default function ActiveAlarmPage() {
         <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
             <div className="text-center">
                 <AlarmClock className="mx-auto h-24 w-24 text-primary animate-pulse" />
-                <h1 className="mt-8 text-5xl font-headline font-bold text-foreground">DSA Wake-Up!</h1>
+                <h1 className="mt-8 text-5xl font-headline font-bold text-foreground">DSA Alarm!</h1>
                 <p className="mt-4 text-xl text-muted-foreground">
                     Time to solve your daily DSA problems.
                 </p>

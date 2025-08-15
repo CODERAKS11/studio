@@ -6,7 +6,7 @@ export function Header() {
       <div className="container flex h-14 max-w-screen-2xl items-center">
         <div className="mr-4 flex items-center">
           <AlarmClock className="h-6 w-6 mr-2 text-primary" />
-          <span className="font-bold font-headline text-lg">DSA Wake-Up</span>
+          <span className="font-bold font-headline text-lg">DSA Alarm</span>
         </div>
       </div>
     </header>

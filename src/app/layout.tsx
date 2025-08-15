@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AlarmManager } from "@/components/dsa/AlarmManager";
 
 export const metadata: Metadata = {
-  title: 'DSA Wake-Up',
+  title: 'DSA Alarm',
   description: 'An app to enforce your DSA study habits.',
   manifest: '/manifest.json',
 };

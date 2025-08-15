@@ -22,14 +22,6 @@ export function AlarmManager() {
   const router = useRouter();
 
   useEffect(() => {
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller === null) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(registration => console.log('Service Worker registered with scope:', registration.scope))
-        .catch(error => console.error('Service Worker registration failed:', error));
-    }
-  }, []);
-
-  useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const checkAlarms = () => {

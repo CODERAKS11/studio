@@ -35,7 +35,7 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
     // Populate state from existingAlarm when it's provided and the sheet is open
     if (open && existingAlarm) {
       const alarmDateTime = new Date(existingAlarm.alarmDateTime);
-      setSelectedQuestions(existingAlarm.questionIds);
+      setSelectedQuestions([...existingAlarm.questionIds]);
       setAlarmDate(format(alarmDateTime, 'yyyy-MM-dd'));
       setAlarmTime(format(alarmDateTime, 'HH:mm'));
     } else if (open) {

@@ -36,8 +36,8 @@ export default function ActiveAlarmPage() {
     };
 
     const handleSnooze = () => {
-        if (!alarm) return;
-        snoozeAlarm(alarm.id);
+        if (!alarmId) return;
+        snoozeAlarm(alarmId);
         router.push('/');
     };
     

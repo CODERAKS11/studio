@@ -16,7 +16,7 @@ import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
-const TIME_LIMIT_SECONDS = 20 * 60;
+const TIME_LIMIT_SECONDS = 1 * 60;
 
 export function QuestionSolver({ question }: { question: Question }) {
     const router = useRouter();

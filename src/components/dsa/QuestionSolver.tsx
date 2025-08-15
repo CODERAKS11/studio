@@ -28,6 +28,11 @@ export function QuestionSolver({ question }: { question: Question }) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const timerId = useRef<NodeJS.Timeout>();
     const timerDeadlineKey = `dsa-timer-deadline-${question.id}`;
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const clearTimerState = () => {
         if (typeof window !== 'undefined') {
@@ -143,7 +148,11 @@ export function QuestionSolver({ question }: { question: Question }) {
                             <CardDescription className="text-base font-code">{question.description}</CardDescription>
                         </div>
                         <div className="text-right ml-4 flex-shrink-0">
-                            <p className="text-lg font-semibold text-primary">{`${currentQuestionNumber} / ${totalQuestions}`}</p>
+                            {isClient ? (
+                                <p className="text-lg font-semibold text-primary">{`${currentQuestionNumber} / ${totalQuestions}`}</p>
+                            ) : (
+                                <p className="text-lg font-semibold text-primary"> &nbsp; </p>
+                            )}
                             <p className="text-sm text-muted-foreground">Questions</p>
                         </div>
                     </div>

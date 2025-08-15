@@ -21,15 +21,14 @@ export function AlarmManager() {
       const now = Date.now();
       
       alarms.forEach(alarm => {
-        if (alarm.isActive || activatedAlarms.has(alarm.id) || alarm.questionIds.length === 0) {
-          return;
-        }
-
-        if (alarm.snoozeUntil && now < alarm.snoozeUntil) {
+        if (alarm.isActive || alarm.questionIds.length === 0) {
           return;
         }
         
-        if (now >= alarm.alarmDateTime) {
+        const hasSnoozeExpired = alarm.snoozeUntil && now >= alarm.snoozeUntil;
+        const isInitialAlarmTime = now >= alarm.alarmDateTime && !alarm.snoozeUntil && !activatedAlarms.has(alarm.id);
+
+        if (hasSnoozeExpired || isInitialAlarmTime) {
            activatedAlarms.add(alarm.id);
            activateAlarm(alarm.id);
            

@@ -4,6 +4,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 
+export type AlarmSound = 'classic' | 'digital' | 'gentle' | 'none';
+
 export interface Alarm {
     id: string;
     alarmDateTime: number; // Store as UTC timestamp
@@ -11,18 +13,20 @@ export interface Alarm {
     isActive: boolean;
     currentQuestionIndex: number;
     snoozeUntil: number | null;
+    sound: AlarmSound;
 }
 
 const initialAlarmState: Omit<Alarm, 'id' | 'alarmDateTime' | 'questionIds'> = {
     isActive: false,
     currentQuestionIndex: 0,
     snoozeUntil: null,
+    sound: 'classic',
 };
 
 
 interface AlarmStore {
     alarms: Alarm[];
-    addOrUpdateAlarm: (alarmDetails: { id?: string; dateTime: number; questions: string[] }) => void;
+    addOrUpdateAlarm: (alarmDetails: { id?: string; dateTime: number; questions: string[], sound: AlarmSound }) => void;
     removeAlarm: (id: string) => void;
     getAlarmById: (id: string) => Alarm | undefined;
     activateAlarm: (id: string) => void;
@@ -36,7 +40,7 @@ export const useAlarmStore = create<AlarmStore>()(
     persist(
         (set, get) => ({
             alarms: [],
-            addOrUpdateAlarm: ({ id, dateTime, questions }) => set(state => {
+            addOrUpdateAlarm: ({ id, dateTime, questions, sound }) => set(state => {
                 const existingIndex = state.alarms.findIndex(a => a.id === id);
                 if (existingIndex > -1) {
                     // Update existing alarm
@@ -45,7 +49,8 @@ export const useAlarmStore = create<AlarmStore>()(
                         ...updatedAlarms[existingIndex],
                         alarmDateTime: dateTime,
                         questionIds: questions,
-                        isActive: false,
+                        sound: sound,
+                        isActive: false, // Reset state on update
                         snoozeUntil: null,
                     };
                     return { alarms: updatedAlarms };
@@ -55,6 +60,7 @@ export const useAlarmStore = create<AlarmStore>()(
                         id: uuidv4(),
                         alarmDateTime: dateTime,
                         questionIds: questions,
+                        sound: sound,
                         ...initialAlarmState,
                     };
                     return { alarms: [...state.alarms, newAlarm] };
@@ -96,7 +102,7 @@ export const useAlarmStore = create<AlarmStore>()(
             }),
         }),
         {
-            name: 'dsa-alarms-store', // renamed to avoid conflict with old structure
+            name: 'dsa-alarms-store',
         }
     )
 );

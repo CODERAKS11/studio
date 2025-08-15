@@ -18,8 +18,9 @@ import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import Link from 'next/link';
 import { useNotificationStore } from '@/hooks/useNotificationStore';
+import { playSound } from '@/lib/audio';
 
-const TIME_LIMIT_SECONDS = 1 * 60;
+const TIME_LIMIT_SECONDS = 5 * 60; // 5 minutes
 
 export function QuestionSolver({ question }: { question: Question }) {
     const router = useRouter();
@@ -61,6 +62,7 @@ export function QuestionSolver({ question }: { question: Question }) {
 
         const handleTimeout = () => {
             toast({ variant: "destructive", title: "Time's up!", description: "Please try solving the question again." });
+            playSound(alarm?.sound || 'classic');
             if (notificationPermission === 'granted') {
                 new Notification('DSA Alarm: Time\'s Up!', {
                     body: `Time to solve "${question.title}" ran out. Try again!`,
@@ -97,9 +99,9 @@ export function QuestionSolver({ question }: { question: Question }) {
                 const currentDeadline = parseInt(localStorage.getItem(timerDeadlineKey)!, 10);
                 const newRemaining = Math.round((currentDeadline - Date.now()) / 1000);
                 if (newRemaining <= 0) {
-                    clearInterval(localTimerId); // Stop old interval
+                    clearInterval(localTimerId);
                     handleTimeout();
-                    setupTimer(); // Restart the timer logic
+                    setupTimer();
                 } else {
                     setTimeLeft(newRemaining);
                 }
@@ -109,8 +111,7 @@ export function QuestionSolver({ question }: { question: Question }) {
         setupTimer();
 
         return () => clearInterval(localTimerId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [question.id, alarmId, isClient, notificationPermission, question.title]);
+    }, [question.id, alarmId, isClient, notificationPermission, question.title, alarm?.sound, timerDeadlineKey]);
 
     useEffect(() => {
         const getCameraPermission = async () => {
@@ -162,7 +163,6 @@ export function QuestionSolver({ question }: { question: Question }) {
                 router.push('/');
             }
         } else {
-            // No alarm, just a solo session
             toast({ title: "Question Solved!", description: "Great job! Your progress and streak have been updated." });
             router.push('/');
         }

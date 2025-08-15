@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect } from 'react';
@@ -8,8 +7,8 @@ import { useNotificationStore } from '@/hooks/useNotificationStore';
 import { useDsaProgress } from '@/hooks/useDsaProgress';
 import { allQuestions } from '@/lib/dsa';
 import { isToday, startOfTomorrow } from 'date-fns';
+import { playSound } from '@/lib/audio';
 
-// Store activated alarms to prevent re-triggering on component re-renders
 const activatedAlarms = new Set<string>();
 const LAST_AUTO_ALARM_CHECK_KEY = 'last-auto-alarm-check';
 
@@ -34,7 +33,9 @@ export function AlarmManager() {
         const isInitialAlarmTime = now >= alarm.alarmDateTime && !alarm.snoozeUntil && !activatedAlarms.has(alarm.id);
 
         if (hasSnoozeExpired || isInitialAlarmTime) {
-           activatedAlarms.add(alarm.id);
+           if (isInitialAlarmTime) {
+             activatedAlarms.add(alarm.id);
+           }
            activateAlarm(alarm.id);
            
            if (notificationPermission === 'granted') {
@@ -43,12 +44,13 @@ export function AlarmManager() {
                icon: '/icon.png',
              });
            }
+           playSound(alarm.sound);
            router.push(`/alarm/active?alarmId=${alarm.id}`);
         }
       });
     };
 
-    const interval = setInterval(checkAlarms, 1000 * 10); // Check every 10 seconds
+    const interval = setInterval(checkAlarms, 1000 * 5); // Check every 5 seconds
     checkAlarms();
 
     return () => clearInterval(interval);
@@ -59,7 +61,6 @@ export function AlarmManager() {
 
     const autoSetNextDayAlarm = () => {
         const lastCheck = localStorage.getItem(LAST_AUTO_ALARM_CHECK_KEY);
-        // Only run check once per day
         if (lastCheck && isToday(new Date(parseInt(lastCheck, 10)))) {
             return;
         }
@@ -78,16 +79,17 @@ export function AlarmManager() {
 
             if (nextQuestions.length > 0) {
                 const nextDayAlarmTime = new Date(tomorrow);
-                nextDayAlarmTime.setHours(7, 0, 0, 0); // 7:00 AM tomorrow
+                nextDayAlarmTime.setHours(7, 0, 0, 0);
 
                 addOrUpdateAlarm({
                     dateTime: nextDayAlarmTime.getTime(),
-                    questions: nextQuestions.map(q => q.id)
+                    questions: nextQuestions.map(q => q.id),
+                    sound: 'classic'
                 });
 
                 if (notificationPermission === 'granted') {
                     new Notification('DSA Alarm', {
-                        body: `We've automatically set an alarm for you tomorrow at 7 AM with your next questions. Keep the streak going!`,
+                        body: `We've automatically set an alarm for you tomorrow at 7 AM. Keep the streak going!`,
                         icon: '/icon.png',
                     });
                 }
@@ -97,9 +99,8 @@ export function AlarmManager() {
         localStorage.setItem(LAST_AUTO_ALARM_CHECK_KEY, Date.now().toString());
     };
     
-    // Check every minute to see if we should run the daily check.
     const dailyCheckInterval = setInterval(autoSetNextDayAlarm, 1000 * 60);
-    autoSetNextDayAlarm(); // Run on initial load as well
+    autoSetNextDayAlarm(); 
 
     return () => clearInterval(dailyCheckInterval);
 

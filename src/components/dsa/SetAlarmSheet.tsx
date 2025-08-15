@@ -8,16 +8,24 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAlarmStore, type Alarm } from "@/hooks/useAlarmStore";
+import { useAlarmStore, type Alarm, type AlarmSound } from "@/hooks/useAlarmStore";
 import { useToast } from "@/hooks/use-toast";
 import { allQuestions, type Question } from "@/lib/dsa";
 import { Search } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 interface SetAlarmSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   existingAlarm: Alarm | null;
 }
+
+const alarmSounds: { value: AlarmSound, label: string }[] = [
+    { value: 'classic', label: 'Classic Alarm' },
+    { value: 'digital', label: 'Digital Beep' },
+    { value: 'gentle', label: 'Gentle Wake-up' },
+    { value: 'none', label: 'No Sound' },
+]
 
 export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmSheetProps) {
   const { addOrUpdateAlarm } = useAlarmStore();
@@ -27,22 +35,24 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [alarmDate, setAlarmDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [alarmTime, setAlarmTime] = useState('07:00');
+  const [sound, setSound] = useState<AlarmSound>('classic');
   const [searchTerm, setSearchTerm] = useState("");
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    // Populate state from existingAlarm when it's provided and the sheet is open
     if (open && existingAlarm) {
       const alarmDateTime = new Date(existingAlarm.alarmDateTime);
       setSelectedQuestions([...existingAlarm.questionIds]);
       setAlarmDate(format(alarmDateTime, 'yyyy-MM-dd'));
       setAlarmTime(format(alarmDateTime, 'HH:mm'));
+      setSound(existingAlarm.sound || 'classic');
     } else if (open) {
       // Reset for new alarm
       setSelectedQuestions([]);
       setAlarmDate(format(new Date(), 'yyyy-MM-dd'));
       setAlarmTime('07:00');
+      setSound('classic');
       setSearchTerm("");
     }
   }, [existingAlarm, open]);
@@ -65,7 +75,6 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
       return;
     }
 
-    // Combine date and time strings and parse into a Date object
     const dateTimeString = `${alarmDate}T${alarmTime}:00`;
     const alarmDateTime = new Date(dateTimeString);
     
@@ -81,7 +90,8 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
     addOrUpdateAlarm({ 
         id: existingAlarm?.id, 
         dateTime: alarmDateTime.getTime(), 
-        questions: selectedQuestions 
+        questions: selectedQuestions,
+        sound: sound
     });
 
     toast({
@@ -93,7 +103,7 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
 
   const filteredQuestions = useMemo(() => {
     if (!searchTerm) {
-        return allQuestions.slice(0, 50); // Show a subset for performance
+        return allQuestions;
     }
     return allQuestions.filter(question => 
         question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -107,11 +117,11 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col h-full">
+      <SheetContent className="flex flex-col h-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="font-headline">{existingAlarm ? 'Edit' : 'Set'} Your DSA Alarm</SheetTitle>
           <SheetDescription>
-            Select a date, a time, and at least one question. Your alarm will ring at the specified time.
+            Select a date, time, sound, and at least one question for your alarm.
           </SheetDescription>
         </SheetHeader>
         <div className="flex-1 flex flex-col gap-4 py-4 min-h-0">
@@ -127,7 +137,7 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
                 />
             </div>
             <div>
-                <Label htmlFor="alarm-time">Time (24-hour)</Label>
+                <Label htmlFor="alarm-time">Time</Label>
                 <Input
                 id="alarm-time"
                 type="time"
@@ -137,7 +147,20 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
                 />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground text-center">Your local time will be used (e.g., IST for users in India).</p>
+
+          <div>
+            <Label htmlFor="alarm-sound">Sound</Label>
+            <Select value={sound} onValueChange={(value) => setSound(value as AlarmSound)}>
+                <SelectTrigger id="alarm-sound" className="mt-1">
+                    <SelectValue placeholder="Select a sound" />
+                </SelectTrigger>
+                <SelectContent>
+                    {alarmSounds.map(s => (
+                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+          </div>
 
           <div className="flex-1 flex flex-col min-h-0">
             <Label>Questions ({selectedQuestions.length} selected)</Label>

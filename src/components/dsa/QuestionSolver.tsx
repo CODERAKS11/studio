@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Camera, Video, Zap, ExternalLink, Rocket } from 'lucide-react';
+import { Loader2, Camera, Video, Zap, ExternalLink, Rocket, SwitchCamera } from 'lucide-react';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -22,7 +22,7 @@ import { useNotificationStore } from '@/hooks/useNotificationStore';
 import { playSound } from '@/lib/audio';
 import { showNotification } from '@/lib/notifications';
 
-const TIME_LIMIT_SECONDS = 15 * 60; // 15 minutes
+const TIME_LIMIT_SECONDS = 20 * 60; // 20 minutes
 
 export function QuestionSolver({ question }: { question: Question }) {
     const router = useRouter();
@@ -52,9 +52,23 @@ export function QuestionSolver({ question }: { question: Question }) {
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+    const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
+
 
     useEffect(() => {
         setIsClient(true);
+    }, []);
+
+     useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        navigator.mediaDevices.enumerateDevices().then(devices => {
+            const videoInputs = devices.filter(device => device.kind === 'videoinput');
+            if (videoInputs.length > 1) {
+                setHasMultipleCameras(true);
+            }
+        });
     }, []);
 
     useEffect(() => {
@@ -65,12 +79,12 @@ export function QuestionSolver({ question }: { question: Question }) {
         const handleTimeout = () => {
             toast({ variant: "destructive", title: "Time's up!", description: "Please try solving the question again." });
             playSound(alarm?.sound || 'classic');
-            if (notificationPermission === 'granted') {
-                showNotification("DSA Alarm: Time's Up!", {
-                    body: `Time to solve "${question.title}" ran out. Try again!`,
-                    data: { url: `/question/${question.id}?alarmId=${alarmId}` },
-                });
-            }
+            
+            showNotification("DSA Alarm: Time's Up!", {
+                body: `Time to solve "${question.title}" ran out. Try again!`,
+                data: { url: `/question/${question.id}?alarmId=${alarmId}` },
+            });
+            
             const newDeadline = Date.now() + TIME_LIMIT_SECONDS * 1000;
             localStorage.setItem(timerDeadlineKey, newDeadline.toString());
             setTimeLeft(TIME_LIMIT_SECONDS);
@@ -118,8 +132,20 @@ export function QuestionSolver({ question }: { question: Question }) {
     useEffect(() => {
         const getCameraPermission = async () => {
           if (!isCameraOpen) return;
+
+          // Stop any existing stream before starting a new one
+          if (videoRef.current && videoRef.current.srcObject) {
+              const stream = videoRef.current.srcObject as MediaStream;
+              stream.getTracks().forEach(track => track.stop());
+          }
+
           try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const constraints: MediaStreamConstraints = {
+                video: {
+                    facingMode: facingMode
+                }
+            };
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
             setHasCameraPermission(true);
     
             if (videoRef.current) {
@@ -144,7 +170,7 @@ export function QuestionSolver({ question }: { question: Question }) {
             stream.getTracks().forEach(track => track.stop());
           }
         }
-      }, [isCameraOpen, toast]);
+      }, [isCameraOpen, toast, facingMode]);
 
     const handleSuccess = () => {
         if (typeof window !== 'undefined') {
@@ -224,6 +250,10 @@ export function QuestionSolver({ question }: { question: Question }) {
     }
 
     const triggerFileSelect = () => fileInputRef.current?.click();
+
+    const toggleCamera = () => {
+        setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+    }
     
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
@@ -318,7 +348,13 @@ export function QuestionSolver({ question }: { question: Question }) {
                                             </Alert>
                                         )}
                                     </div>
-                                    <DialogFooter>
+                                    <DialogFooter className="sm:justify-between">
+                                        {hasMultipleCameras && (
+                                            <Button variant="outline" onClick={toggleCamera}>
+                                                <SwitchCamera className="mr-2 h-4 w-4" />
+                                                Switch Camera
+                                            </Button>
+                                        )}
                                         <Button onClick={handleCapture} disabled={hasCameraPermission !== true}>
                                             <Zap className="mr-2 h-4 w-4" />
                                             Capture & Verify

@@ -14,7 +14,7 @@ import { Loader2, Camera } from 'lucide-react';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 
-const TIME_LIMIT_SECONDS = 20 * 60;
+const TIME_LIMIT_SECONDS = 1 * 60; // Set to 1 minute for testing
 
 export function QuestionSolver({ question }: { question: Question }) {
     const router = useRouter();
@@ -27,21 +27,69 @@ export function QuestionSolver({ question }: { question: Question }) {
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const timerId = useRef<NodeJS.Timeout>();
+    const timerDeadlineKey = `dsa-timer-deadline-${question.id}`;
 
+    const clearTimerState = () => {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem(timerDeadlineKey);
+        }
+    };
+
+    const handleTimeout = () => {
+        toast({ variant: "destructive", title: "Time's up!", description: "Please try solving the question again." });
+        clearTimerState();
+        setTimeLeft(TIME_LIMIT_SECONDS);
+        const newDeadline = Date.now() + TIME_LIMIT_SECONDS * 1000;
+        localStorage.setItem(timerDeadlineKey, newDeadline.toString());
+    };
 
     useEffect(() => {
+        const savedDeadline = localStorage.getItem(timerDeadlineKey);
+        const now = Date.now();
+        let deadline: number;
+
+        if (savedDeadline) {
+            deadline = parseInt(savedDeadline, 10);
+            const remaining = Math.round((deadline - now) / 1000);
+            if (remaining > 0) {
+                setTimeLeft(remaining);
+            } else {
+                setTimeLeft(0);
+                handleTimeout();
+            }
+        } else {
+            deadline = now + TIME_LIMIT_SECONDS * 1000;
+            localStorage.setItem(timerDeadlineKey, deadline.toString());
+            setTimeLeft(TIME_LIMIT_SECONDS);
+        }
+
         timerId.current = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    toast({ variant: "destructive", title: "Time's up!", description: "Please try solving the question again." });
-                    return TIME_LIMIT_SECONDS;
-                }
-                return prev - 1;
-            });
+            const newRemaining = Math.round((deadline - Date.now()) / 1000);
+            if (newRemaining <= 0) {
+                clearInterval(timerId.current);
+                handleTimeout();
+            } else {
+                setTimeLeft(newRemaining);
+            }
         }, 1000);
 
         return () => clearInterval(timerId.current);
-    }, [toast, question.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [question.id, timerDeadlineKey]);
+
+    const handleSuccess = () => {
+        clearTimerState();
+        completeQuestion(question.id);
+        const nextIndex = alarm.currentQuestionIndex + 1;
+        if (nextIndex < alarm.questionIds.length) {
+            nextQuestion();
+            router.push(`/question/${alarm.questionIds[nextIndex]}`);
+        } else {
+            toast({ title: "All questions solved!", description: "You've completed your daily DSA workout!" });
+            resetAlarm();
+            router.push('/');
+        }
+    };
 
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -59,20 +107,10 @@ export function QuestionSolver({ question }: { question: Question }) {
 
                     if (result.isLegitimate) {
                         toast({ title: "Verification Successful!", description: "Great job! Moving to the next question." });
-                        completeQuestion(question.id);
-                        const nextIndex = alarm.currentQuestionIndex + 1;
-                        if (nextIndex < alarm.questionIds.length) {
-                            nextQuestion();
-                            router.push(`/question/${alarm.questionIds[nextIndex]}`);
-                        } else {
-                            toast({ title: "All questions solved!", description: "You've completed your daily DSA workout!" });
-                            resetAlarm();
-                            router.push('/');
-                        }
+                        handleSuccess();
                     } else {
                         toast({ variant: "destructive", title: "Verification Failed", description: result.reason });
                         setUploadedImage(null);
-                        setTimeLeft(TIME_LIMIT_SECONDS);
                     }
                 } catch (error) {
                     console.error(error);

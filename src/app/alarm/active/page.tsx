@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useAlarmStore } from '@/hooks/useAlarmStore';
-import { AlarmClock, Play, Snooze } from 'lucide-react';
+import { AlarmClock, Play, History } from 'lucide-react';
 
 export default function ActiveAlarmPage() {
     const router = useRouter();
@@ -40,7 +40,7 @@ export default function ActiveAlarmPage() {
                     Start
                 </Button>
                 <Button size="lg" variant="secondary" className="flex-1 text-lg py-8" onClick={handleSnooze}>
-                    <Snooze className="mr-2 h-6 w-6" />
+                    <History className="mr-2 h-6 w-6" />
                     5 Minutes Later
                 </Button>
             </div>

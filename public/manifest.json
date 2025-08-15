@@ -1,11 +1,11 @@
 {
-  "name": "DSA Wake-Up",
+  "name": "DSA Alarm",
   "short_name": "DSA Alarm",
-  "description": "An alarm clock that forces you to solve DSA problems to wake up.",
+  "description": "An app to enforce your DSA study habits.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#121217",
-  "theme_color": "#673AB7",
+  "theme_color": "#121217",
   "icons": [
     {
       "src": "/icon.png",

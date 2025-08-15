@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,10 +19,19 @@ interface SetAlarmSheetProps {
 
 export function SetAlarmSheet({ open, onOpenChange }: SetAlarmSheetProps) {
   const { alarm, setDsaAlarm } = useAlarmStore();
-  const [selectedQuestions, setSelectedQuestions] = useState<string[]>(alarm.questionIds);
-  const [alarmTime, setAlarmTime] = useState(alarm.alarmTime);
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
+  const [alarmTime, setAlarmTime] = useState('07:00');
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    if (alarm) {
+      setSelectedQuestions(alarm.questionIds);
+      setAlarmTime(alarm.alarmTime);
+    }
+  }, [alarm, open]);
 
   const handleQuestionToggle = (questionId: string) => {
     setSelectedQuestions((prev) =>
@@ -54,6 +63,10 @@ export function SetAlarmSheet({ open, onOpenChange }: SetAlarmSheetProps) {
         question.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm]);
+  
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

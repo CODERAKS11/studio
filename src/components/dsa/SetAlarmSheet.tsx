@@ -56,11 +56,11 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
   };
 
   const handleSetAlarm = () => {
-    if (selectedQuestions.length < 3) {
+    if (selectedQuestions.length === 0) {
       toast({
         variant: "destructive",
         title: "Invalid Selection",
-        description: "Please select at least 3 questions to set an alarm.",
+        description: "Please select at least one question to set an alarm.",
       });
       return;
     }
@@ -107,7 +107,7 @@ export function SetAlarmSheet({ open, onOpenChange, existingAlarm }: SetAlarmShe
         <SheetHeader>
           <SheetTitle className="font-headline">{existingAlarm ? 'Edit' : 'Set'} Your DSA Alarm</SheetTitle>
           <SheetDescription>
-            Select a date, a time, and at least 3 questions. Your alarm will ring at the specified time.
+            Select a date, a time, and at least one question. Your alarm will ring at the specified time.
           </SheetDescription>
         </SheetHeader>
         <div className="flex-1 flex flex-col gap-4 py-4">

@@ -21,7 +21,7 @@ export function AlarmManager() {
       const now = Date.now();
       
       alarms.forEach(alarm => {
-        if (alarm.isActive || activatedAlarms.has(alarm.id) || alarm.questionIds.length < 3) {
+        if (alarm.isActive || activatedAlarms.has(alarm.id) || alarm.questionIds.length === 0) {
           return;
         }
 

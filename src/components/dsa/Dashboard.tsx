@@ -22,6 +22,7 @@ export function Dashboard() {
   }, []);
 
   const getCategoryProgress = (category: Category) => {
+    if (!isClient) return 0;
     const total = category.questions.length;
     if (total === 0) return 0;
     const completed = category.questions.filter(q => progress[q.id]).length;
@@ -66,8 +67,9 @@ export function Dashboard() {
                   <div key={question.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50">
                     <Checkbox
                       id={question.id}
-                      checked={!!progress[question.id]}
+                      checked={isClient ? !!progress[question.id] : false}
                       onCheckedChange={() => toggleQuestion(question.id)}
+                      disabled={!isClient}
                     />
                     <Label htmlFor={question.id} className="text-base font-normal cursor-pointer flex-1">
                       {question.title}

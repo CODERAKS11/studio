@@ -20,7 +20,7 @@ import Link from 'next/link';
 import { useNotificationStore } from '@/hooks/useNotificationStore';
 import { playSound } from '@/lib/audio';
 
-const TIME_LIMIT_SECONDS = 5 * 60; // 5 minutes
+const TIME_LIMIT_SECONDS = 15 * 60; // 15 minutes
 
 export function QuestionSolver({ question }: { question: Question }) {
     const router = useRouter();

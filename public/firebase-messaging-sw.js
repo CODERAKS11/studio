@@ -1,3 +1,56 @@
-// This file is intentionally left blank.
-// Firebase will use this file to configure the service worker for push notifications.
-// It is important that this file exists at the root of the public directory.
+// This file must be in the public folder.
+
+importScripts("https://www.gstatic.com/firebasejs/9.2.0/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/9.2.0/firebase-messaging-compat.js");
+
+const firebaseConfig = {
+    apiKey: "AIzaSyC9oqJ54-YMX8MGCcNjWtEB4OoLC_2tmBs",
+    authDomain: "dsa-wake-up.firebaseapp.com",
+    projectId: "dsa-wake-up",
+    storageBucket: "dsa-wake-up.firebasestorage.app",
+    messagingSenderId: "85611582133",
+    appId: "1:85611582133:web:65eafc423698e3a34864fc",
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage((payload) => {
+  console.log(
+    "[firebase-messaging-sw.js] Received background message ",
+    payload
+  );
+  
+  const notificationTitle = payload.notification.title;
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: payload.notification.icon || '/icon.png',
+    data: payload.data,
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const urlToOpen = event.notification.data.url || '/';
+    
+    event.waitUntil(
+        clients.matchAll({
+            type: 'window',
+            includeUncontrolled: true,
+        }).then((clientList) => {
+            if (clientList.length > 0) {
+                let client = clientList[0];
+                for(let i=0; i<clientList.length; i++) {
+                    if(clientList[i].focused) {
+                        client = clientList[i];
+                    }
+                }
+                return client.focus().then(c => c.navigate(urlToOpen));
+            }
+            return clients.openWindow(urlToOpen);
+        })
+    );
+});

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import useLocalStorage from './use-local-storage';
+import { requestNotificationPermission as requestFirebaseNotificationPermission } from '@/lib/firebase';
 
 export function useNotificationStore() {
     const [notificationPermission, setNotificationPermission] = useLocalStorage<NotificationPermission>('notification-permission', 'default');
@@ -13,11 +14,9 @@ export function useNotificationStore() {
     }, []);
 
     const requestNotificationPermission = useCallback(async () => {
-        // This function is now a placeholder, actual permission request is handled by firebase.ts
-        // We keep this structure to avoid breaking components that use it.
-        // The permission state will be updated via the Dashboard component.
-        console.log("Requesting notification permission via store (placeholder)...");
-    }, []);
+        const permission = await requestFirebaseNotificationPermission();
+        setNotificationPermission(permission);
+    }, [setNotificationPermission]);
 
     return { notificationPermission, requestNotificationPermission, setNotificationPermission };
 }

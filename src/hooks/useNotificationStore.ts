@@ -13,14 +13,11 @@ export function useNotificationStore() {
     }, []);
 
     const requestNotificationPermission = useCallback(async () => {
-        if (typeof window !== 'undefined' && 'Notification' in window) {
-            if (Notification.permission === 'granted') {
-                return;
-            }
-            const permission = await Notification.requestPermission();
-            setNotificationPermission(permission);
-        }
-    }, [setNotificationPermission]);
+        // This function is now a placeholder, actual permission request is handled by firebase.ts
+        // We keep this structure to avoid breaking components that use it.
+        // The permission state will be updated via the Dashboard component.
+        console.log("Requesting notification permission via store (placeholder)...");
+    }, []);
 
-    return { notificationPermission, requestNotificationPermission };
+    return { notificationPermission, requestNotificationPermission, setNotificationPermission };
 }

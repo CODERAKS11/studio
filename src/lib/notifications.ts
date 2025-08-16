@@ -1,34 +1,32 @@
-export const showNotification = async (title: string, options: NotificationOptions) => {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-        console.warn('Push messaging is not supported');
-        
-        // Fallback for browsers that don't support push but support notifications
-        if ('Notification' in window && Notification.permission === 'granted') {
-             new Notification(title, {
-                ...options,
-                icon: '/icon.png',
-             });
-        }
-        return;
-    }
+// This is a placeholder function. In a real application with a backend,
+// you would make an API call to your server here. The server would then use the
+// stored FCM token to send a push notification via Firebase Cloud Messaging.
+// Since this is a client-only demo, we will simulate the notification locally
+// using the browser's Notification API, which only works when the browser tab is open.
 
-    try {
-        const registration = await navigator.serviceWorker.ready;
-        // Instead of showing notification directly, we simulate a push event.
-        // In a real app, this would come from a server.
-        // For this app's purpose, we can use the broadcast channel to tell the SW to show a notification.
-        if ('active' in registration && registration.active) {
-            // A real app would send a push subscription to a server,
-            // which would then send a push message. For this simulation,
-            // we'll just ask the service worker to show the notification directly.
-            // This is a simplified approach for demonstration.
-            await registration.showNotification(title, {
+export const showNotification = async (title: string, options: NotificationOptions) => {
+    // Check if the Notification API is available and permission is granted
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        
+        // This is a simulation. A real implementation would not use the local service worker
+        // directly like this for sending push notifications. This is a fallback to show
+        // notifications for the demo, but it does NOT work when the app is closed.
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            registration.showNotification(title, {
                 ...options,
                 icon: '/icon.png',
                 badge: '/icon.png',
             });
+        } catch (error) {
+            console.error('Error showing notification via Service Worker:', error);
+            // Fallback to basic notification if SW fails
+            new Notification(title, {
+                ...options,
+                icon: '/icon.png',
+            });
         }
-    } catch (error) {
-        console.error('Error showing notification:', error);
+    } else {
+        console.warn('Notifications are not permitted or not supported in this browser.');
     }
 };

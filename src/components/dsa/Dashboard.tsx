@@ -23,19 +23,29 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils";
+import { initializeFirebaseMessaging, requestNotificationPermission as requestFirebaseNotificationPermission } from "@/lib/firebase";
+
 
 export function Dashboard() {
   const [isAlarmSheetOpen, setIsAlarmSheetOpen] = useState(false);
   const [editingAlarm, setEditingAlarm] = useState<Alarm | null>(null);
   const { progress, toggleQuestion } = useDsaProgress();
-  const { notificationPermission, requestNotificationPermission } = useNotificationStore();
+  const { notificationPermission, setNotificationPermission } = useNotificationStore();
   const { alarms, removeAlarm } = useAlarmStore();
   const { streak } = useStreakStore();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      initializeFirebaseMessaging();
+    }
   }, []);
+
+  const handleRequestPermission = async () => {
+    const permission = await requestFirebaseNotificationPermission();
+    setNotificationPermission(permission);
+  };
   
   const handleOpenAlarmSheet = (alarm: Alarm | null = null) => {
     setEditingAlarm(alarm);
@@ -53,7 +63,7 @@ export function Dashboard() {
           <h1 className="text-3xl font-headline font-bold">Striver's A2Z DSA Course Progress</h1>
           <div className="flex gap-2">
           {isClient && notificationPermission !== 'granted' && (
-              <Button onClick={requestNotificationPermission} variant="outline" className="bg-transparent border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+              <Button onClick={handleRequestPermission} variant="outline" className="bg-transparent border-primary text-primary hover:bg-primary hover:text-primary-foreground">
               <Bell className="mr-2 h-4 w-4" />
               Enable Notifications
               </Button>

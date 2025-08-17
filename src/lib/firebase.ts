@@ -40,7 +40,7 @@ export const initializeFirebaseMessaging = () => {
             notification.onclick = (event) => {
                 event.preventDefault(); 
                 if (payload.data?.url) {
-                    window.open(payload.data.url, '_blank');
+                    clients.openWindow(payload.data.url);
                 }
                 notification.close();
             };
@@ -75,12 +75,13 @@ export const requestNotificationPermission = async () => {
 
 const getAndLogToken = async () => {
     const app = initializeFirebaseApp();
-    if (app && typeof window !== 'undefined') {
+    if (app && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
         try {
             const messaging = getMessaging(app);
+            // The service worker is registered in initializeFirebaseMessaging, so we don't need to do it again here.
+            // We just need to get the token.
             const fcmToken = await getToken(messaging, { 
                 vapidKey: "BAlb_hY8ZfYRB-zk_2j_Izo2Cb6i-P22aYyL9nQLT5vG0mJ5zY_n1-1X9_5K8CgW8jXl8sM6t-W_v7nZ_jX_f9Y",
-                serviceWorkerRegistration: await navigator.serviceWorker.register('/firebase-messaging-sw.js')
             });
             if (fcmToken) {
                 console.log('FCM Token:', fcmToken);

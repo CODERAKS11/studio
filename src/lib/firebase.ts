@@ -1,9 +1,9 @@
 "use client";
 
-import { initializeApp, getApps } from "firebase/app";
+import { initializeApp, getApps, type FirebaseOptions } from "firebase/app";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
-const firebaseConfig = {
+const firebaseConfig: FirebaseOptions = {
     apiKey: "AIzaSyC9oqJ54-YMX8MGCcNjWtEB4OoLC_2tmBs",
     authDomain: "dsa-wake-up.firebaseapp.com",
     projectId: "dsa-wake-up",
@@ -12,6 +12,8 @@ const firebaseConfig = {
     appId: "1:85611582133:web:65eafc423698e3a34864fc",
 };
 
+// This is a public key, safe to expose.
+const VAPID_KEY = "BAlb_hY8ZfYRB-zk_2j_Izo2Cb6i-P22aYyL9nQLT5vG0mJ5zY_n1-1X9_5K8CgW8jXl8sM6t-W_v7nZ_jX_f9Y";
 
 const initializeFirebaseApp = () => {
   if (typeof window !== 'undefined' && !getApps().length) {
@@ -35,11 +37,13 @@ export const initializeFirebaseMessaging = () => {
                 data: payload.data
             };
 
+            // Show notification using the browser's Notification API
             const notification = new Notification(notificationTitle, notificationOptions);
             
+            // Handle notification click
             notification.onclick = (event) => {
                 event.preventDefault(); 
-                if (payload.data?.url) {
+                if (payload.data?.url && typeof clients !== 'undefined') {
                     clients.openWindow(payload.data.url);
                 }
                 notification.close();
@@ -78,11 +82,13 @@ const getAndLogToken = async () => {
     if (app && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
         try {
             const messaging = getMessaging(app);
-            // The service worker is registered in initializeFirebaseMessaging, so we don't need to do it again here.
-            // We just need to get the token.
+            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            
             const fcmToken = await getToken(messaging, { 
-                vapidKey: "BAlb_hY8ZfYRB-zk_2j_Izo2Cb6i-P22aYyL9nQLT5vG0mJ5zY_n1-1X9_5K8CgW8jXl8sM6t-W_v7nZ_jX_f9Y",
+                vapidKey: VAPID_KEY,
+                serviceWorkerRegistration: registration
             });
+
             if (fcmToken) {
                 console.log('FCM Token:', fcmToken);
                 // In a real app, you would send this token to your server.
@@ -90,7 +96,7 @@ const getAndLogToken = async () => {
                 console.log('No registration token available. Request permission to generate one.');
             }
         } catch (err) {
-            console.log('An error occurred while retrieving token. ', err);
+            console.error('An error occurred while retrieving token. ', err);
         }
     }
 };
